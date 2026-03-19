@@ -1054,6 +1054,7 @@ html, body {
     <div class="login-sub">Prothésiste Ongulaire · Saint-Gaudens</div>
 
     <!-- VUE PRINCIPALE -->
+    <div id="login-blocked-msg" style="display:none;width:100%;text-align:center;font-size:12px;color:#B85450;background:rgba(184,84,80,0.08);border:1px solid rgba(184,84,80,0.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;"></div>
     <div id="view-main" class="login-btns">
       <button class="btn-main" data-action="showConn">✦ &nbsp;Espace Cliente</button>
       <button class="btn-ghost" data-action="showMarion">Espace Marion</button>
@@ -1174,17 +1175,27 @@ html, body {
     <!-- Carte RDV builder -->
     <div class="rdv-builder">
 
+      <!-- Prestation principale -->
       <div class="rdv-builder-section">
-        <div class="rdv-builder-label">Prestation</div>
-        <div class="pills-row">
-          <div class="pill active" onclick="selPill(this)">Rallongement gel</div>
-          <div class="pill" onclick="selPill(this)">Gainage</div>
-          <div class="pill" onclick="selPill(this)">Nail Art</div>
-          <div class="pill" onclick="selPill(this)">Pédicure</div>
-          <div class="pill" onclick="selPill(this)">Remplissage</div>
-        </div>
+        <div class="rdv-builder-label">Prestation principale</div>
+        <div class="pills-row" id="pills-prestas"></div>
       </div>
 
+      <!-- Message compatibilité -->
+      <div id="compat-msg" style="display:none;margin:0 0 2px;padding:8px 14px;font-size:11px;color:var(--or);background:rgba(168,131,74,0.08);border-radius:6px;"></div>
+
+      <!-- Mention dépose -->
+      <div style="margin:0 0 6px;padding:9px 14px;font-size:11px;color:var(--text3);background:var(--bg2);border-radius:6px;line-height:1.5;border-left:2px solid var(--or-light);">
+        ✦ Si une dépose doit être effectuée en amont d'une autre prestation, pensez à la sélectionner également dans les prestations ci-dessus.
+      </div>
+
+      <!-- Option Nail Art -->
+      <div class="rdv-builder-section" id="section-na">
+        <div class="rdv-builder-label">Nail Art <span style="font-weight:300;letter-spacing:0;text-transform:none;color:var(--text3);font-size:10px;">(optionnel · prix pour 10 doigts)</span></div>
+        <div id="pills-na" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
+      <!-- Créneaux -->
       <div class="rdv-builder-section">
         <div class="rdv-builder-label" id="cr-title">Créneaux · 22 Mars</div>
         <div class="creneaux-grid" id="cr-grid"></div>
@@ -1192,7 +1203,32 @@ html, body {
 
     </div>
 
-    <button class="btn-confirm" onclick="confirmRdv()">Confirmer le Rendez-vous</button>
+    <!-- Résumé tarif + durée + bouton envoi -->
+    <div id="rdv-summary" style="margin:0 16px 10px;background:var(--white);border:1px solid var(--border2);border-radius:var(--radius);padding:14px 16px;">
+
+      <!-- État vide -->
+      <div id="rdv-resume-text" style="font-size:12px;color:var(--text3);font-style:italic;">Sélectionnez une prestation</div>
+
+      <!-- Détail lignes (masqué si vide) -->
+      <div id="rdv-detail" style="display:none;">
+        <div id="rdv-detail-lines" style="border-bottom:1px solid var(--border2);padding-bottom:10px;margin-bottom:10px;"></div>
+        <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+          <div>
+            <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:2px;">Total estimé</div>
+            <div id="rdv-prix" style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:var(--text);line-height:1;">—</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:2px;">Durée estimée</div>
+            <div id="rdv-duree" style="font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:300;color:var(--text2);line-height:1;">—</div>
+          </div>
+        </div>
+        <div style="font-size:9px;color:var(--text3);margin-top:8px;line-height:1.4;">
+          ✦ Prix et durée confirmés par Marion lors de la validation
+        </div>
+      </div>
+
+    </div>
+    <button class="btn-confirm" data-action="doConfirmRdv">✦ &nbsp;Envoyer ma demande de RDV</button>
 
     <div class="section-label" style="margin-top:4px;">À noter</div>
     <div class="info-box">
@@ -1218,6 +1254,35 @@ html, body {
 
     <div class="section-label">Mes Rendez-vous</div>
     <div class="hist-card" id="rdv-list-dynamic"></div>
+
+    <!-- Paramètres -->
+    <div class="section-label" style="margin-top:8px;">Paramètres</div>
+    <div style="margin:0 16px 16px;background:var(--white);border-radius:var(--radius);border:1px solid var(--border2);box-shadow:var(--shadow);overflow:hidden;">
+
+      <!-- Confidentialité & Sécurité -->
+      <div id="section-securite" style="overflow:hidden;">
+        <div onclick="toggleSecurite()" style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;">
+          <div>
+            <div style="font-size:13px;font-weight:400;color:var(--text);">Confidentialité & Sécurité</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px;">Modifier mon mot de passe</div>
+          </div>
+          <div id="securite-chevron" style="font-size:18px;color:var(--text3);transition:transform 0.2s;">›</div>
+        </div>
+
+        <div id="securite-panel" style="display:none;padding:0 16px 16px;border-top:1px solid var(--border2);">
+          <p style="font-size:11px;color:var(--text3);margin:12px 0 16px;line-height:1.5;">
+            Un email de réinitialisation sera envoyé à votre adresse. Suivez le lien pour choisir un nouveau mot de passe.
+          </p>
+          <div id="securite-msg" style="display:none;font-size:12px;padding:8px 12px;border-radius:6px;margin-bottom:12px;"></div>
+          <button data-action="doChangePwd"
+            style="width:100%;padding:13px;border-radius:100px;background:var(--text);color:var(--bg2);border:none;
+                   font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;">
+            Envoyer le lien de réinitialisation
+          </button>
+        </div>
+      </div>
+
+    </div>
   </div>
 
   <!-- TARIFS -->
@@ -1461,7 +1526,9 @@ onAuthStateChanged(auth, async (fbUser) => {
     if (listes.noire) {
       await signOut(auth);
       showLoginScreen();
-      setErr("login-error", "Accès refusé. Contactez le salon.");
+      // Afficher le message sur la vue principale (view-connexion est masqué)
+      const msg = document.getElementById("login-blocked-msg");
+      if (msg) { msg.textContent = "Accès refusé. Contactez le salon."; msg.style.display = "block"; }
       return;
     }
     // Stocker le statut rouge pour le planning
@@ -1582,14 +1649,16 @@ function enterCliente() {
   document.getElementById("login-screen").style.display = "none";
   document.getElementById("app").style.display = "block";
   applyUser();
-  // Afficher l'état initial immédiatement (rdvsCache vide = pas de RDV)
   refreshAccueil();
   refreshEspace();
   refreshLoyalty();
-  // Puis listener Firestore mettra à jour dès réception
   startRdvsListener();
   refreshCal();
   renderCr();
+  selNAs = [];
+  renderPrestas();
+  renderNA();
+  updateSummary();
   selDay = new Date().getDate();
 }
 
@@ -1654,12 +1723,62 @@ function getProchainRdv() {
 }
 
 // ── Confirmer RDV ────────────────────────────────────
-const TARIFS = {"Rallongement gel":"45€","Gainage":"35€","Nail Art":"10€","Pédicure":"40€","Remplissage":"40€"};
+// ── Catalogue prestations ─────────────────────────────
+const PRESTAS = [
+  { id:"gainage",    label:"Gainage ongles naturels", duree:90,  prix:35, groupe:"pose" },
+  { id:"rallonge",   label:"Rallongement gel",         duree:105, prix:45, groupe:"pose" },
+  { id:"remplissage",label:"Remplissage 3 à 4 sem.",   duree:90,  prix:40, groupe:"pose" },
+  { id:"pedicure",   label:"Pédicure",                 duree:105, prix:40, groupe:"extra" },
+  { id:"depose",     label:"Dépose complète",           duree:45,  prix:10, groupe:"extra" },
+  { id:"mainpied",   label:"Main + Pied",               duree:240, prix:75, groupe:"solo" },
+  { id:"french",     label:"French classique",          duree:45,  prix:8,  groupe:"finition" },
+  { id:"frenchautre",label:"Autres french",             duree:25,  prix:10, groupe:"finition" },
+  { id:"babyboomer", label:"Baby boomer",               duree:45,  prix:10, groupe:"finition" },
+];
+
+// Règles de compatibilité
+// "pose" → 1 seul parmi ce groupe
+// "solo" → seul, rien d'autre
+// "extra" / "finition" → cumulables avec "pose", entre eux et avec NA
+function getCompatibles(selection) {
+  if (selection.length === 0) return PRESTAS;
+  if (selection.some(p => p.groupe === "solo")) return []; // Main+Pied = solo
+
+  const hasPose      = selection.some(p => p.groupe === "pose");
+  const hasDepose    = selection.some(p => p.id === "depose");
+  const hasOnlyDepose = selection.length === 1 && hasDepose;
+
+  return PRESTAS.filter(p => {
+    if (selection.includes(p)) return false;
+    if (p.groupe === "solo") return false;
+    if (p.groupe === "pose" && hasPose) return false;
+    // Dépose seule : pas de finition (french, autres french, baby boomer)
+    if (hasOnlyDepose && p.groupe === "finition") return false;
+    return true;
+  });
+}
+
+const NA_OPTIONS = [
+  { id:"na1", label:"Nail Art niveau 1 — Basique",         duree:15, prix:5,  parDoigt:true },
+  { id:"na2", label:"Nail Art niveau 2 — Intermédiaire",   duree:25, prix:10, parDoigt:true },
+  { id:"na3", label:"Nail Art niveau 3 — Élaboré",         duree:35, prix:15, parDoigt:true },
+  { id:"na4", label:"Nail Art niveau 4 — Premium",         duree:45, prix:20, parDoigt:true },
+];
+
+// Compat : TARIFS gardé pour le dashboard Marion (affichage historique)
+const TARIFS = {};
+PRESTAS.forEach(p => { TARIFS[p.label] = p.prix + "€"; });
+NA_OPTIONS.forEach(n => { TARIFS[n.label] = n.prix + "€"; });
 
 window.confirmRdv = async function() {
   if (!currentUser) { showToast("Connectez-vous pour réserver."); return; }
   if (window._clienteRouge) { showToast("⚠ Réservation non autorisée. Contactez le salon."); return; }
-  const p = document.querySelector(".pill.active")?.textContent || "prestation";
+  if (!selPrestas.length) { showToast("Veuillez choisir une prestation."); return; }
+  const labels = selPrestas.map(x => x.label);
+  selNAs.forEach(n => labels.push(n.label));
+  const p     = labels.join(" + ");
+  const prix  = (selPrestas.reduce((s,x)=>s+(x.prix||0),0) + selNAs.reduce((s,n)=>s+(n.prix||0),0)) + "€";
+  const duree = selPrestas.reduce((s,x)=>s+(x.duree||0),0) + selNAs.reduce((s,n)=>s+(n.duree||0),0);
   const months = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
   const dateStr = selDay + " " + months[calM] + " " + calY;
 
@@ -1703,7 +1822,8 @@ window.confirmRdv = async function() {
       date:      dateStr,
       jour:      selDay, mois: calM, annee: calY,
       heure:     selCr,
-      prix:      TARIFS[p] || "—",
+      duree:     duree,
+      prix:      prix,
       statut:    "en_attente",
       ts:        serverTimestamp()
     });
@@ -1743,75 +1863,103 @@ function startDashListener() {
 
 function renderDashboard(rdvs, today) {
   const todayY = today.getFullYear(), todayM = today.getMonth(), todayD = today.getDate();
-  const rdvAuj = rdvs.filter(r => r.jour===todayD && r.mois===todayM && r.annee===todayY)
+  const now = new Date();
+
+  const rdvAuj = rdvs
+    .filter(r => r.jour===todayD && r.mois===todayM && r.annee===todayY)
     .sort((a,b) => a.heure.localeCompare(b.heure));
   const rdvMois = rdvs.filter(r => r.mois===todayM && r.annee===todayY);
 
-  // Stats
-  const caAuj = rdvAuj.reduce((s,r) => s + parseInt(r.prix||0), 0);
-  document.querySelector(".stat-val") && (() => {
-    const vals = document.querySelectorAll(".stat-val");
-    if (vals[0]) vals[0].textContent = rdvAuj.length;
-    if (vals[1]) vals[1].textContent = caAuj + "€";
-    if (vals[2]) vals[2].textContent = rdvMois.length;
-    // Clientes uniques ce mois
-    const uniq = new Set(rdvMois.map(r => r.uid)).size;
-    if (vals[3]) vals[3].textContent = uniq;
-  })();
+  // Helper : créneau passé ?
+  function heurePassee(heure) {
+    const [h, m] = heure.split("h").map(Number);
+    const rdvDate = new Date(todayY, todayM, todayD, h, m||0);
+    return rdvDate < now;
+  }
 
-  // Planning aujourd'hui
+  // Stats — on compte les terminés aussi
+  const caAuj = rdvAuj.filter(r => heurePassee(r.heure)).reduce((s,r) => s + parseInt(r.prix||0), 0);
+  const vals = document.querySelectorAll(".stat-val");
+  if (vals[0]) vals[0].textContent = rdvAuj.length;
+  if (vals[1]) vals[1].textContent = caAuj + "€";
+  if (vals[2]) vals[2].textContent = rdvMois.length;
+  if (vals[3]) vals[3].textContent = new Set(rdvMois.map(r => r.uid)).size;
+
+  // Section label date
+  const dateLabel = document.getElementById("dash-date-label");
+  if (dateLabel) {
+    const days   = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+    const months = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+    dateLabel.textContent = "Planning · " + days[today.getDay()] + " " + todayD + " " + months[todayM];
+  }
+
+  // Planning — séparer à venir / terminés
   const planningEl = document.getElementById("dash-planning-list");
   if (planningEl) {
     if (!rdvAuj.length) {
       planningEl.innerHTML = "<div style='padding:12px 16px;font-size:13px;color:var(--text3);'>Aucun RDV aujourd'hui.</div>";
     } else {
-      const now = new Date();
-      planningEl.innerHTML = rdvAuj.map(r => {
-        const [h,m] = r.heure.split("h").map(Number);
-        const rdvDate = new Date(r.annee, r.mois, r.jour, h, m||0);
-        const isNow = Math.abs(rdvDate - now) < 2*60*60*1000;
-        return `<div class="dash-rdv${isNow?' now':''}">`+
-          `<div class="dash-time">${r.heure}</div>`+
-          `<div class="dash-rdv-info">`+
-            `<div class="dash-rdv-n">${r.prenom} ${r.nom}</div>`+
-            `<div class="dash-rdv-s">${r.prestation}</div>`+
-          `</div>`+
-          `<div class="dash-rdv-p">${r.prix}</div>`+
-          `</div>`;
-      }).join("");
+      const avenir   = rdvAuj.filter(r => !heurePassee(r.heure));
+      const termines = rdvAuj.filter(r =>  heurePassee(r.heure));
+
+      function rdvRow(r, termine) {
+        return "<div class='dash-rdv' style='" + (termine ? "opacity:0.5;" : "border-left:3px solid var(--or-light);") + "'>" +
+          "<div class='dash-time'>" + r.heure + "</div>" +
+          "<div class='dash-rdv-info'>" +
+            "<div class='dash-rdv-n'>" + r.prenom + " " + r.nom + "</div>" +
+            "<div class='dash-rdv-s'>" + r.prestation + "</div>" +
+          "</div>" +
+          "<div style='display:flex;flex-direction:column;align-items:flex-end;gap:2px;'>" +
+            "<div class='dash-rdv-p'>" + r.prix + "</div>" +
+            (termine ? "<span style='font-size:9px;letter-spacing:1px;color:var(--text3);text-transform:uppercase;'>✓ Terminé</span>" : "") +
+          "</div>" +
+        "</div>";
+      }
+
+      let html = "";
+      if (avenir.length) {
+        html += "<div style='font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--or);padding:10px 16px 4px;'>À venir</div>";
+        html += avenir.map(r => rdvRow(r, false)).join("");
+      }
+      if (termines.length) {
+        html += "<div style='font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);padding:10px 16px 4px;'>RDV terminés</div>";
+        html += termines.map(r => rdvRow(r, true)).join("");
+      }
+      planningEl.innerHTML = html;
     }
   }
 
-  // Section label date
-  const dateLabel = document.getElementById("dash-date-label");
-  if (dateLabel) {
-    const days = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
-    const months = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
-    dateLabel.textContent = "Planning · " + days[today.getDay()] + " " + todayD + " " + months[todayM];
-  }
-
-  // ── Demandes en attente ──────────────────────────────
+  // Demandes en attente
   const enAttente = rdvs.filter(r => r.statut === "en_attente")
     .sort((a,b) => new Date(a.annee,a.mois,a.jour) - new Date(b.annee,b.mois,b.jour));
-  const attenteEl = document.getElementById("dash-attente-list");
+  const attenteEl      = document.getElementById("dash-attente-list");
   const attenteSection = document.getElementById("dash-attente-section");
   if (attenteEl && attenteSection) {
     attenteSection.style.display = enAttente.length ? "block" : "none";
-    attenteEl.innerHTML = enAttente.map(r =>
-      `<div class="dash-rdv" style="border-left:3px solid var(--or);">`+
-        `<div class="dash-time">${r.heure}</div>`+
-        `<div class="dash-rdv-info">`+
-          `<div class="dash-rdv-n">${r.prenom} ${r.nom}</div>`+
-          `<div class="dash-rdv-s">${r.prestation} · ${r.date}</div>`+
-        `</div>`+
-        `<div style="display:flex;flex-direction:column;gap:4px;">`+
-          `<button onclick="marionConfirme('${r.id}','${r.annee}-${r.mois}-${r.jour}-${r.heure.replace('h','')}')" `+
-            `style="background:var(--text);color:#fff;border:none;border-radius:100px;padding:5px 12px;font-size:10px;cursor:pointer;font-weight:500;">✓ Confirmer</button>`+
-          `<button onclick="marionRefuse('${r.id}','${r.annee}-${r.mois}-${r.jour}-${r.heure.replace('h','')}')" `+
-            `style="background:none;border:1px solid var(--border);border-radius:100px;padding:5px 12px;font-size:10px;cursor:pointer;color:var(--text3);">✕ Refuser</button>`+
-        `</div>`+
-      `</div>`
-    ).join("");
+    attenteEl.innerHTML = enAttente.map(r => {
+      const slotId = r.annee + "-" + r.mois + "-" + r.jour + "-" + r.heure.replace("h","");
+      return "<div class='dash-rdv' style='border-left:3px solid var(--or);'>" +
+        "<div class='dash-time'>" + r.heure + "</div>" +
+        "<div class='dash-rdv-info'>" +
+          "<div class='dash-rdv-n'>" + r.prenom + " " + r.nom + "</div>" +
+          "<div class='dash-rdv-s'>" + r.prestation + " · " + r.date + "</div>" +
+        "</div>" +
+        "<div style='display:flex;flex-direction:column;gap:4px;'>" +
+          "<button data-id='" + r.id + "' data-slot='" + slotId + "' data-action='confirme'" +
+            " style='background:var(--text);color:#fff;border:none;border-radius:100px;padding:5px 12px;font-size:10px;cursor:pointer;font-weight:500;'>✓ Confirmer</button>" +
+          "<button data-id='" + r.id + "' data-slot='" + slotId + "' data-action='refuse'" +
+            " style='background:none;border:1px solid var(--border);border-radius:100px;padding:5px 12px;font-size:10px;cursor:pointer;color:var(--text3);'>✕ Refuser</button>" +
+        "</div>" +
+      "</div>";
+    }).join("");
+
+    // Brancher les boutons confirmer/refuser via addEventListener
+    attenteEl.querySelectorAll("[data-action='confirme']").forEach(btn => {
+      btn.addEventListener("click", () => marionConfirme(btn.dataset.id, btn.dataset.slot));
+    });
+    attenteEl.querySelectorAll("[data-action='refuse']").forEach(btn => {
+      btn.addEventListener("click", () => marionRefuse(btn.dataset.id, btn.dataset.slot));
+    });
   }
 }
 
@@ -1831,6 +1979,37 @@ window.marionRefuse = async function(rdvId, slotId) {
     await setDoc(doc(db, "slots", slotId), { pris: false, statut: "libre", ts: serverTimestamp() });
     showToast("RDV refusé — créneau libéré.");
   } catch(e) { showToast("Erreur lors du refus."); }
+};
+
+// ── Reset password Cliente ──────────────────────────
+window.doChangePwd = async function() {
+  const msgEl = document.getElementById("securite-msg");
+  if (!currentUser) return;
+  try {
+    await sendPasswordResetEmail(auth, currentUser.email);
+    if (msgEl) {
+      msgEl.textContent = "✦ Email envoyé à " + currentUser.email + " — vérifiez votre boîte.";
+      msgEl.style.cssText = "display:block;background:rgba(90,158,111,0.1);color:#5A9E6F;font-size:12px;padding:8px 12px;border-radius:6px;margin-bottom:12px;";
+    }
+  } catch(e) {
+    if (msgEl) {
+      msgEl.textContent = fbErr(e.code);
+      msgEl.style.cssText = "display:block;background:rgba(184,84,80,0.08);color:#B85450;font-size:12px;padding:8px 12px;border-radius:6px;margin-bottom:12px;";
+    }
+  }
+};
+
+window.toggleSecurite = function() {
+  const panel   = document.getElementById("securite-panel");
+  const chevron = document.getElementById("securite-chevron");
+  const open    = panel.style.display === "none";
+  panel.style.display  = open ? "block" : "none";
+  chevron.style.transform = open ? "rotate(90deg)" : "rotate(0deg)";
+  // Reset message si on ferme
+  if (!open) {
+    const msg = document.getElementById("securite-msg");
+    if (msg) msg.style.display = "none";
+  }
 };
 
 // ── Reset password Marion ────────────────────────────
@@ -1957,6 +2136,14 @@ window.changeMonth = function(dir){
   refreshCal();
 };
 
+function isPastSlot(heure){
+  const now=new Date();
+  const today=now.getFullYear()===calY && now.getMonth()===calM && now.getDate()===selDay;
+  if(!today) return false;
+  const [h,m]=(heure+"00").replace("h",":").split(":").map(Number);
+  return now.getHours()>h || (now.getHours()===h && now.getMinutes()>=m);
+}
+
 function renderCr(){
   const grid=document.getElementById("cr-grid");
   if(!grid) return;
@@ -1966,8 +2153,9 @@ function renderCr(){
   all.forEach(c=>{
     const el=document.createElement("div");
     const pris=isSlotPris(c);
+    const passe=isPastSlot(c);
     let cls="cr";
-    if(ferme.includes(c)||pris) cls+=" off";
+    if(ferme.includes(c)||pris||passe) cls+=" off";
     else if(c===selCr) cls+=" active";
     el.className=cls;
     el.textContent=c+(pris?" ✗":"");
@@ -1976,10 +2164,251 @@ function renderCr(){
   });
 }
 
-window.selPill = function(el){
-  document.querySelectorAll(".pill").forEach(p=>p.classList.remove("active"));
-  el.classList.add("active");
-};
+// ── État sélection planning ─────────────────────────
+let selPrestas = []; // Aucune préselection — cliente choisit
+let selNAs     = []; // multi-sélection NA
+
+function renderPrestas() {
+  const row = document.getElementById("pills-prestas");
+  if (!row) return;
+  const compatibles = getCompatibles(selPrestas);
+  row.innerHTML = "";
+
+  PRESTAS.forEach(p => {
+    const isSelected   = selPrestas.includes(p);
+    const isCompatible = isSelected || compatibles.includes(p);
+    const el = document.createElement("div");
+    el.className = "pill" + (isSelected ? " active" : "") + (!isCompatible ? " off" : "");
+    el.textContent = p.label;
+    el.style.position = "relative";
+
+    if (!isCompatible) {
+      el.style.opacity = "0.35";
+      el.style.cursor  = "not-allowed";
+      el.title = "Non cumulable avec votre sélection";
+    } else {
+      el.addEventListener("click", () => {
+        if (isSelected) {
+          // Désélectionner librement
+          selPrestas = selPrestas.filter(x => x.id !== p.id);
+          // Si plus rien, réinitialiser NA aussi
+          if (selPrestas.length === 0) selNAs = [];
+        } else {
+          // Si solo → remplacer tout
+          if (p.groupe === "solo") {
+            selPrestas = [p];
+          } else {
+            // Retirer les autres "pose" si on ajoute une pose
+            if (p.groupe === "pose") {
+              selPrestas = selPrestas.filter(x => x.groupe !== "pose");
+            }
+            selPrestas = [...selPrestas, p];
+          }
+        }
+        renderPrestas();
+        // NA seulement si au moins une pose ou prestation de base
+        const hasPoseOrExtra = selPrestas.some(x => x.groupe === "pose" || x.groupe === "extra" || x.groupe === "finition");
+        if (!hasPoseOrExtra) selNAs = [];
+        renderNA();
+        updateSummary();
+      });
+    }
+    row.appendChild(el);
+  });
+
+  // Message compatibilité si nécessaire
+  const msgEl = document.getElementById("compat-msg");
+  if (msgEl) {
+    const hasSolo = selPrestas.some(p => p.groupe === "solo");
+    msgEl.style.display = hasSolo ? "block" : "none";
+    if (hasSolo) msgEl.textContent = "Main + Pied inclut mains et pieds — aucun ajout possible.";
+  }
+}
+
+function renderNA() {
+  const row     = document.getElementById("pills-na");
+  const section = document.getElementById("section-na");
+  if (!row) return;
+  const hasSolo = selPrestas.some(p => p.groupe === "solo");
+  if (section) section.style.display = hasSolo ? "none" : "block";
+  if (hasSolo) { selNAs = []; return; }
+  row.innerHTML = "";
+
+  NA_OPTIONS.forEach(n => {
+    const sel = selNAs.find(x => x.id === n.id);
+    const isSelected = !!sel;
+    const qte = sel ? sel.qte : 10;
+
+    // Wrapper card
+    const card = document.createElement("div");
+    card.style.cssText = "display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-radius:8px;border:1px solid " +
+      (isSelected ? "var(--or)" : "var(--border2)") +
+      ";background:" + (isSelected ? "rgba(168,131,74,0.06)" : "var(--white)") +
+      ";cursor:pointer;transition:all 0.15s;min-width:0;flex-shrink:0;";
+
+    // Ligne 1 : label + checkbox
+    const top = document.createElement("div");
+    top.style.cssText = "display:flex;align-items:center;gap:8px;";
+    const check = document.createElement("div");
+    check.style.cssText = "width:16px;height:16px;border-radius:50%;border:1.5px solid " +
+      (isSelected ? "var(--or)" : "var(--border)") +
+      ";background:" + (isSelected ? "var(--or)" : "transparent") +
+      ";flex-shrink:0;display:flex;align-items:center;justify-content:center;";
+    if (isSelected) check.innerHTML = "<svg width='8' height='8' viewBox='0 0 8 8'><path d='M1 4l2 2 4-4' stroke='#fff' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>";
+    const lbl = document.createElement("div");
+    lbl.style.cssText = "font-size:12px;color:var(--text);flex:1;";
+    lbl.textContent = n.label;
+    const prixLbl = document.createElement("div");
+    prixLbl.style.cssText = "font-family:'Cormorant Garamond',serif;font-size:16px;color:" + (isSelected ? "var(--or)" : "var(--text3)") + ";white-space:nowrap;";
+    const prixTotal = parseFloat(((n.prix / 10) * qte).toFixed(2));
+    const prixTotalStr = Number.isInteger(prixTotal) ? prixTotal + "€" : prixTotal.toFixed(2).replace(".",",") + "€";
+    prixLbl.textContent = (isSelected && qte < 10) ? prixTotalStr : n.prix + "€";
+    top.appendChild(check); top.appendChild(lbl); top.appendChild(prixLbl);
+
+    // Ligne 2 : sélecteur doigts (visible si sélectionné)
+    const bottom = document.createElement("div");
+    bottom.style.cssText = "display:" + (isSelected ? "flex" : "none") + ";align-items:center;gap:8px;padding-top:4px;";
+    const doigtLbl = document.createElement("div");
+    doigtLbl.style.cssText = "font-size:10px;color:var(--text3);white-space:nowrap;";
+    doigtLbl.textContent = "Doigts :";
+    const minus = document.createElement("button");
+    minus.textContent = "−";
+    minus.style.cssText = "width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;";
+    const qteDisplay = document.createElement("div");
+    qteDisplay.style.cssText = "font-size:13px;font-weight:500;color:var(--text);min-width:20px;text-align:center;";
+    qteDisplay.textContent = qte;
+    const plus = document.createElement("button");
+    plus.textContent = "+";
+    plus.style.cssText = minus.style.cssText;
+    const perDoigt = document.createElement("div");
+    perDoigt.style.cssText = "font-size:10px;color:var(--text3);margin-left:4px;";
+    perDoigt.textContent = Math.round(n.prix/10) + "€/doigt";
+    bottom.appendChild(doigtLbl); bottom.appendChild(minus);
+    bottom.appendChild(qteDisplay); bottom.appendChild(plus);
+    bottom.appendChild(perDoigt);
+
+    card.appendChild(top); card.appendChild(bottom);
+
+    // Events
+    top.addEventListener("click", (e) => {
+      if (e.target === minus || e.target === plus) return;
+      if (isSelected) {
+        selNAs = selNAs.filter(x => x.id !== n.id);
+      } else {
+        selNAs = [...selNAs, {...n, qte:10}];
+      }
+      renderNA(); updateSummary();
+    });
+    minus.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const cur = selNAs.find(x => x.id === n.id);
+      if (!cur) return;
+      if (cur.qte <= 1) { selNAs = selNAs.filter(x => x.id !== n.id); }
+      else { cur.qte--; }
+      renderNA(); updateSummary();
+    });
+    plus.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const cur = selNAs.find(x => x.id === n.id);
+      if (!cur) return;
+      if (cur.qte < 10) cur.qte++;
+      renderNA(); updateSummary();
+    });
+
+    row.appendChild(card);
+  });
+}
+
+function updateSummary() {
+  const totalPrestas = selPrestas.reduce((s,p) => s + (p.prix||0), 0);
+  // Prix NA proportionnel — calcul en centimes pour précision
+  function prixNA(n) {
+    const qte = n.qte || 10;
+    return parseFloat(((n.prix / 10) * qte).toFixed(2));
+  }
+  function fmtPrix(v) {
+    return Number.isInteger(v) ? v + "€" : v.toFixed(2).replace(".", ",") + "€";
+  }
+  const totalNA = selNAs.reduce((s,n) => s + prixNA(n), 0);
+  const total = parseFloat((totalPrestas + totalNA).toFixed(2));
+
+  // Durée NA proportionnelle
+  const dureePrestas = selPrestas.reduce((s,p) => s + (p.duree||0), 0);
+  const dureeNA = selNAs.reduce((s,n) => s + Math.round((n.duree/10)*(n.qte||10)), 0);
+  const dureeBase = dureePrestas + dureeNA;
+  const dMin = dureeBase;
+  const dMax = dureeBase + 15;
+  function fmt(m) {
+    const h = Math.floor(m/60), mn = m%60;
+    return h > 0 ? h + "h" + (mn > 0 ? String(mn).padStart(2,"0") : "") : mn + " min";
+  }
+  const dureeStr = fmt(dMin) + "\n~ " + fmt(dMax);
+
+  const prixEl = document.getElementById("rdv-prix");
+  if (prixEl) prixEl.textContent = selPrestas.length ? fmtPrix(total) : "—";
+  const dureeEl = document.getElementById("rdv-duree");
+  if (dureeEl) {
+    if (!selPrestas.length) {
+      dureeEl.innerHTML = "—";
+    } else if (dMin === dMax) {
+      dureeEl.innerHTML = fmt(dMin);
+    } else {
+      dureeEl.innerHTML = fmt(dMin) + " &ndash; " + fmt(dMax);
+    }
+  }
+
+  // Résumé texte
+  const resumeEl = document.getElementById("rdv-resume-text");
+  const detailEl  = document.getElementById("rdv-detail");
+  const linesEl   = document.getElementById("rdv-detail-lines");
+
+  if (!selPrestas.length) {
+    if (resumeEl) { resumeEl.style.display = "block"; resumeEl.textContent = "Sélectionnez une prestation"; }
+    if (detailEl) detailEl.style.display = "none";
+  } else {
+    if (resumeEl) resumeEl.style.display = "none";
+    if (detailEl) detailEl.style.display = "block";
+
+    // Construire les lignes de détail
+    if (linesEl) {
+      function ligne(label, prix, duree, isNA, prixStr) {
+        const h = Math.floor(duree/60), m = duree%60;
+        const d = h > 0 ? h+"h"+(m>0?String(m).padStart(2,"0"):"") : m+" min";
+        const dureeStr = isNA ? d + " — 10 doigts" : d;
+        const affPrix = prixStr || (Number.isInteger(prix) ? prix+"€" : parseFloat(prix).toFixed(2).replace(".",",")+"€");
+        return '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border2);">' +
+          '<div>' +
+            '<div style="font-size:12px;color:var(--text);">' + label + '</div>' +
+            '<div style="font-size:10px;color:var(--text3);margin-top:1px;">' + dureeStr + '</div>' +
+          '</div>' +
+          '<div class="tarif-p" style="color:var(--text);font-size:18px;">' + affPrix + '</div>' +
+        '</div>';
+      }
+      let html = selPrestas.map(p => ligne(p.label, p.prix, p.duree)).join("");
+      selNAs.forEach(n => {
+        const qte = n.qte || 10;
+        const prixNAv = parseFloat(((n.prix/10)*qte).toFixed(2));
+        const prixNA  = Number.isInteger(prixNAv) ? prixNAv+"€" : prixNAv.toFixed(2).replace(".",",")+"€";
+        const dureeNA = Math.round((n.duree/10)*qte);
+        const labelNA = n.label + (qte < 10 ? " (" + qte + " doigt" + (qte>1?"s":"") + ")" : " (10 doigts)");
+        html += ligne(labelNA, prixNAv, dureeNA, true, prixNA);
+      });
+      // Ligne total si plusieurs éléments
+      if (selPrestas.length > 1 || selNAs.length > 0) {
+        const t = parseFloat((selPrestas.reduce((s,p)=>s+p.prix,0) + selNAs.reduce((s,n)=>prixNA(n)+s,0)).toFixed(2));
+        const tStr = Number.isInteger(t) ? t+"€" : t.toFixed(2).replace(".",",")+"€";
+        html += "<div style='display:flex;justify-content:space-between;align-items:center;padding:6px 0 2px;'>" +
+          "<div style='font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--text2);'>Total</div>" +
+          "<div class='tarif-p' style='color:var(--or);font-size:20px;font-weight:400;'>" + tStr + "</div>" +
+        "</div>";
+      }
+      linesEl.innerHTML = html;
+    }
+  }
+}
+
+// Kept for compatibility
+window.selPill = function(el) {};
 
 // ═══════════════════════════════════════════════════════
 //  UI — REFRESH SECTIONS
@@ -2015,19 +2444,39 @@ function refreshEspace(){
   list.innerHTML="<div style='padding:16px;font-size:13px;color:var(--text3);text-align:center;'>Aucun rendez-vous pour l'instant.</div>";
     return;
   }
-  list.innerHTML=rdvs.filter(r=>r.statut!=="annule").map(r=>{
-    const past=new Date(r.annee,r.mois,r.jour)<now;
-    return `<div class="hist-row">`+
-      `<div class="hist-left">`+
-        `<div class="hist-dot ${past?"done":(r.statut==="en_attente"?"up":"up")}"></div>`+
-        `<div><div class="hist-svc">${r.prestation}</div><div class="hist-dt">${r.date} · ${r.heure}</div></div>`+
-      `</div>`+
-      `<div style="display:flex;align-items:center;gap:8px;">`+
-        `<div class="hist-price">${r.prix}</div>`+
-        `${!past?`<button onclick="annulerRdv('${r.id}')" style="background:none;border:1px solid var(--border);border-radius:100px;padding:4px 10px;font-size:10px;color:var(--text3);cursor:pointer;">Annuler</button>`:""}`+
-      `</div>`+
-    `</div>`;
+  list.innerHTML=rdvs.filter(r=>r.statut!=="annule"&&r.statut!=="refuse").map(r=>{
+    const past      = new Date(r.annee,r.mois,r.jour) < now;
+    const enAttente = r.statut === "en_attente";
+    const confirme  = r.statut === "confirme";
+    const dotCls    = past ? "done" : "up";
+    const badge     = enAttente
+      ? "<span style='font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--or);background:rgba(168,131,74,0.1);padding:2px 7px;border-radius:100px;'>En attente</span>"
+      : confirme && !past
+      ? "<span style='font-size:9px;letter-spacing:1px;text-transform:uppercase;color:#5A9E6F;background:rgba(90,158,111,0.1);padding:2px 7px;border-radius:100px;'>Confirmé</span>"
+      : past
+      ? "<span style='font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);padding:2px 7px;'>✓ Terminé</span>"
+      : "";
+    return "<div class='hist-row'>" +
+      "<div class='hist-left'>" +
+        "<div class='hist-dot " + dotCls + "'></div>" +
+        "<div>" +
+          "<div class='hist-svc'>" + r.prestation + "</div>" +
+          "<div class='hist-dt'>" + r.date + " · " + r.heure + "</div>" +
+          (badge ? "<div style='margin-top:4px;'>" + badge + "</div>" : "") +
+        "</div>" +
+      "</div>" +
+      "<div style='display:flex;flex-direction:column;align-items:flex-end;gap:4px;'>" +
+        "<div class='hist-price'>" + r.prix + "</div>" +
+        (!past && (enAttente || confirme)
+          ? "<button data-rdvid='" + r.id + "' data-action='annulerRdv' style='background:none;border:1px solid var(--border);border-radius:100px;padding:4px 10px;font-size:10px;color:var(--text3);cursor:pointer;'>Annuler</button>"
+          : "") +
+      "</div>" +
+    "</div>";
   }).join("");
+
+  list.querySelectorAll("[data-action='annulerRdv']").forEach(btn => {
+    btn.addEventListener("click", () => annulerRdv(btn.dataset.rdvid));
+  });
 }
 
 // ── Loyalty ──────────────────────────────────────────
@@ -2090,6 +2539,8 @@ window.showView = function(view){
     if(el) el.style.display="none";
   });
   setErr("login-error",""); setErr("reg-error",""); setErr("marion-error","");
+  const blocked = document.getElementById("login-blocked-msg");
+  if (blocked) blocked.style.display = "none";
   const target=document.getElementById("view-"+view);
   if(target) target.style.display=(view==="main")?"flex":"block";
 };
@@ -2289,30 +2740,22 @@ async function checkListes(email) {
 // ── Brancher tous les boutons via addEventListener (module scope) ──
 document.addEventListener("DOMContentLoaded", () => {
 
-  // Boutons login screen
-  const bind = (sel, fn) => {
-    const el = typeof sel === "string" ? document.querySelector(sel) : sel;
-    if (el) el.addEventListener("click", fn);
-  };
-  const bindId = (id, fn) => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener("click", fn);
-  };
-
-  // Vue principale
+  // Vue principale + boutons app
   document.querySelectorAll('[data-action]').forEach(el => {
     el.addEventListener("click", () => {
       const action = el.dataset.action;
-      if (action === "showConn")   showView("connexion");
-      if (action === "showMain")   showView("main");
-      if (action === "showInsc")   showView("inscription");
-      if (action === "showMarion") showView("marion");
-      if (action === "doLogin")    window.doLogin();
-      if (action === "doRegister") window.doRegister();
+      if (action === "showConn")      showView("connexion");
+      if (action === "showMain")      showView("main");
+      if (action === "showInsc")      showView("inscription");
+      if (action === "showMarion")    showView("marion");
+      if (action === "doLogin")       window.doLogin();
+      if (action === "doRegister")    window.doRegister();
       if (action === "doLoginMarion") window.doLoginMarion();
-      if (action === "loginDemo")  window.loginDemo();
-      if (action === "doResetPwd") window.doResetPwd();
-      if (action === "backToLogin") window.backToLogin();
+      if (action === "loginDemo")     window.loginDemo();
+      if (action === "doResetPwd")    window.doResetPwd();
+      if (action === "backToLogin")   window.backToLogin();
+      if (action === "doConfirmRdv")  window.confirmRdv();
+      if (action === "doChangePwd")   window.doChangePwd();
     });
   });
 
