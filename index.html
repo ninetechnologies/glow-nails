@@ -2,14 +2,14 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="color-scheme" content="light">
 <title>Glow Nails — Prothésiste Ongulaire · Saint-Gaudens</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 /* ===== RESET & VARS ===== */
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; color-scheme: light; }
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; color-scheme: light; touch-action: manipulation; }
 
 :root {
   --bg: #F8F4EF;
@@ -1074,9 +1074,7 @@ html, body {
         <button data-action="showMain">← Retour</button>
       </div>
 
-      <div class="switch-mode" style="margin-top:10px;">
-        <button data-action="loginDemo" style="color:var(--text3);font-size:10px;letter-spacing:1px;">⚙ Accès démo cliente</button>
-      </div>
+
     </div>
 
     <!-- VUE INSCRIPTION -->
@@ -2564,13 +2562,6 @@ function renderDStamps(){} // kept for compat
 
 window.renderStamps = function(){};
 
-// ── Accès démo cliente (compte test Firebase) ───────
-window.loginDemo = async function() {
-  document.getElementById("login-email").value = "ninetechnologies+demo@outlook.fr";
-  document.getElementById("login-pwd").value = "demo2026";
-  await window.doLogin();
-};
-
 // ═══════════════════════════════════════════════════════
 //  GESTION CLIENTES — Marion
 // ═══════════════════════════════════════════════════════
@@ -2751,7 +2742,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (action === "doLogin")       window.doLogin();
       if (action === "doRegister")    window.doRegister();
       if (action === "doLoginMarion") window.doLoginMarion();
-      if (action === "loginDemo")     window.loginDemo();
       if (action === "doResetPwd")    window.doResetPwd();
       if (action === "backToLogin")   window.backToLogin();
       if (action === "doConfirmRdv")  window.confirmRdv();
