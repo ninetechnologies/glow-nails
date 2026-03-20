@@ -1815,6 +1815,7 @@ window.doLogin = async function() {
     await signInWithEmailAndPassword(auth, email, pwd);
   } catch(e) {
     setErr("login-error", fbErr(e.code));
+  } finally {
     if (btn) { btn.textContent = "Se connecter"; btn.disabled = false; }
   }
 };
@@ -1832,6 +1833,7 @@ window.doLoginMarion = async function() {
     await signInWithEmailAndPassword(auth, email, pwd);
   } catch(e) {
     setErr("marion-error", fbErr(e.code));
+  } finally {
     if (btn) { btn.textContent = "Accéder au dashboard"; btn.disabled = false; }
   }
 };
@@ -1852,6 +1854,7 @@ window.doRegister = async function() {
     // onAuthStateChanged crée le profil Firestore et entre dans l'app
   } catch(e) {
     setErr("reg-error", fbErr(e.code));
+  } finally {
     if (btn) { btn.textContent = "Créer mon compte"; btn.disabled = false; }
   }
 };
@@ -3756,6 +3759,20 @@ document.addEventListener("DOMContentLoaded", () => {
     const list = document.getElementById("clientes-list");
     if (fiche) fiche.style.display = "none";
     if (list) list.style.display = "";
+  });
+
+  // Effacer les erreurs quand la cliente recommence à taper
+  ["login-email","login-pwd"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", () => setErr("login-error", ""));
+  });
+  ["marion-email","marion-pwd"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", () => setErr("marion-error", ""));
+  });
+  ["reg-nom","reg-email","reg-pwd"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", () => setErr("reg-error", ""));
   });
 
   // Enter key
