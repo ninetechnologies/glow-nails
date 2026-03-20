@@ -1443,10 +1443,7 @@ html, body {
     <div id="dash-planning-list"><div style="padding:12px 16px;font-size:13px;color:var(--text3);">Chargement…</div></div>
 
     <div class="section-label" style="margin-top:8px;">Clientes · Fidélité</div>
-    <div class="client-row"><div class="client-av">S</div><div style="flex:1"><div class="client-nm">Sophie Martin</div><div class="client-mt">3 visites · RDV 22 mars</div></div><div class="client-stamps" id="st-s"></div></div>
-    <div class="client-row"><div class="client-av">L</div><div style="flex:1"><div class="client-nm">Léa Dupont</div><div class="client-mt">5 visites · −15% acquis ✦</div></div><div class="client-stamps" id="st-l"></div></div>
-    <div class="client-row"><div class="client-av">C</div><div style="flex:1"><div class="client-nm">Camille Roux</div><div class="client-mt">2 visites · RDV auj. 14h</div></div><div class="client-stamps" id="st-c"></div></div>
-    <div class="client-row"><div class="client-av">E</div><div style="flex:1"><div class="client-nm">Emma Bernard</div><div class="client-mt">1 visite · RDV auj. 16h30</div></div><div class="client-stamps" id="st-e"></div></div>
+    <div id="dash-clientes-fidelite"><div style="padding:8px 0;font-size:13px;color:var(--text3);">Chargement…</div></div>
   </div>
 </div>
 
@@ -1664,6 +1661,7 @@ function enterMarion() {
   document.getElementById("login-screen").style.display = "none";
   document.getElementById("dashboard-screen").style.display = "block";
   startDashListener();
+  loadDashClientes();
 }
 
 function applyUser() {
@@ -2658,6 +2656,40 @@ async function loadClientes() {
   }
 }
 
+// ── Charger clientes fidélité sur le tableau de bord ──
+async function loadDashClientes() {
+  const el = document.getElementById("dash-clientes-fidelite");
+  if (!el) return;
+  el.innerHTML = "<div style='color:var(--text3);font-size:12px;'>Chargement…</div>";
+  try {
+    const snap = await getDocs(collection(db, "users"));
+    if (snap.empty) {
+      el.innerHTML = "<div style='color:var(--text3);font-size:12px;'>Aucune cliente inscrite.</div>";
+      return;
+    }
+    let html = "";
+    snap.docs.forEach(d => {
+      const u = d.data();
+      const prenom = u.prenom || "";
+      const nom2 = (u.nom || "").split(" ")[1] || "";
+      const initial = prenom.charAt(0).toUpperCase() || "?";
+      const visites = u.visites || 0;
+      const depuis = u.depuis || "—";
+      html +=
+        "<div class='client-row'>" +
+          "<div class='client-av'>" + initial + "</div>" +
+          "<div style='flex:1'>" +
+            "<div class='client-nm'>" + prenom + " " + nom2 + "</div>" +
+            "<div class='client-mt'>" + visites + " visite" + (visites > 1 ? "s" : "") + " · Depuis " + depuis + "</div>" +
+          "</div>" +
+        "</div>";
+    });
+    el.innerHTML = html;
+  } catch(e) {
+    console.error("loadDashClientes:", e);
+    el.innerHTML = "<div style='color:#B85450;font-size:12px;'>Erreur chargement clientes.</div>";
+  }
+}
 
 async function loadListe(type) {
   const el = document.getElementById(type + "-list");
