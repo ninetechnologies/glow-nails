@@ -1898,13 +1898,14 @@ function enterCliente() {
   refreshEspace();
   refreshLoyalty();
   startRdvsListener();
-  refreshCal();
-  renderCr();
+  selDay = new Date().getDate();
   selNAs = [];
+  renderCal();
+  renderCr();
   renderPrestas();
   renderNA();
   updateSummary();
-  selDay = new Date().getDate();
+  refreshCal();
 }
 
 function enterMarion() {
@@ -2764,7 +2765,7 @@ function refreshCalDots() {
 }
 
 function refreshCal() {
-  loadSlots().then(() => { refreshCalDots(); });
+  loadSlots().then(() => { refreshCalDots(); }).catch(() => { renderCal(); });
 }
 
 function renderCal(){
@@ -2835,6 +2836,7 @@ window.changeMonth = function(dir){
   if(newY<minY||(newY===minY&&newM<minM)) return;
   if(newY>maxY||(newY===maxY&&newM>maxM)) return;
   calM=newM; calY=newY;
+  renderCal();
   refreshCal();
 };
 
