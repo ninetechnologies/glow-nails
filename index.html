@@ -908,6 +908,69 @@ html, body {
 .stamp-xs { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--text3); }
 .stamp-xs.on { background: var(--or); border-color: var(--or); }
 
+/* ===== DASHBOARD NAV ===== */
+.dash-nav {
+  display: flex;
+  position: sticky;
+  top: 0;
+  left: 0; right: 0;
+  background: #F7F4EF;
+  border-bottom: 1px solid var(--or);
+  z-index: 120;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+}
+.dash-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  cursor: pointer;
+  color: var(--text3);
+  transition: all 0.15s;
+  background: none;
+  border: none;
+  border-radius: 100px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+}
+.dash-nav-item:hover {
+  background: var(--bg2);
+  color: var(--text);
+}
+.dash-nav-item svg { display: block; flex-shrink: 0; }
+.dash-nav-item .nav-label { letter-spacing: 0.5px; }
+.dash-nav-item.active {
+  color: var(--or);
+  background: rgba(168,131,74,0.10);
+  font-weight: 500;
+}
+.dash-screen { display: none; padding-bottom: 24px; animation: fadeUp 0.25s ease; }
+.dash-screen.active { display: block; }
+
+/* Mobile: bottom nav */
+@media (max-width: 768px) {
+  .dash-content { padding-bottom: 68px; }
+  .dash-nav {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    border-bottom: none;
+    border-top: 1px solid var(--border2);
+    justify-content: space-around;
+    gap: 0;
+    padding: 6px 0 env(safe-area-inset-bottom, 6px);
+  }
+  .dash-nav-item {
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 4px;
+    border-radius: 0;
+    font-size: 9px;
+  }
+}
+
 /* ===== INFO BOX ===== */
 .info-box {
   margin: 0 16px 12px;
@@ -1361,6 +1424,32 @@ html, body {
     </div>
   </div>
 
+  <!-- DASHBOARD NAV -->
+  <nav class="dash-nav">
+    <button class="dash-nav-item active" data-tab="home">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span class="nav-label">Accueil</span>
+    </button>
+    <button class="dash-nav-item" data-tab="planning">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="nav-label">Planning</span>
+    </button>
+    <button class="dash-nav-item" data-tab="clientes">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span class="nav-label">Clientes</span>
+    </button>
+    <button class="dash-nav-item" data-tab="galerie">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><span class="nav-label">Galerie</span>
+    </button>
+    <button class="dash-nav-item" data-tab="actus">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg><span class="nav-label">Actus</span>
+    </button>
+    <button class="dash-nav-item" data-tab="params">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span class="nav-label">Réglages</span>
+    </button>
+  </nav>
+
+  <div class="dash-content" style="max-width:800px;width:100%;margin:0 auto;">
+
+  <!-- ══ SCREEN: ACCUEIL ══ -->
+  <div class="dash-screen active" id="dscreen-home">
   <div style="padding-bottom:24px;">
     <div class="dash-hero">
       <div class="dash-eyebrow">Bonjour, Marion</div>
@@ -1379,72 +1468,119 @@ html, body {
     <div id="dash-attente-list"></div>
   </div>
 
-  <div class="section-label" style="margin-top:8px;">Gestion Clientes
-    <button onclick="toggleGestionClientes()" id="btn-gestion"
-      style="margin-left:8px;background:none;border:1px solid var(--border);border-radius:100px;
-             padding:3px 10px;font-size:10px;color:var(--text3);cursor:pointer;letter-spacing:0;
-             text-transform:none;font-weight:400;">Afficher</button>
-  </div>
-  <div id="gestion-clientes-panel" style="display:none;padding:0 16px 8px;">
-
-    <!-- Onglets -->
-    <div style="display:flex;gap:0;border-bottom:1px solid var(--border2);margin-bottom:12px;">
-      <button class="dash-tab-btn active" id="tab-clientes" onclick="switchDashTab('clientes')"
-        style="flex:1;background:none;border:none;padding:8px;font-size:10px;letter-spacing:2px;
-               text-transform:uppercase;cursor:pointer;color:var(--text);border-bottom:2px solid var(--or);">
-        Clientes</button>
-      <button class="dash-tab-btn" id="tab-rouge" onclick="switchDashTab('rouge')"
-        style="flex:1;background:none;border:none;padding:8px;font-size:10px;letter-spacing:2px;
-               text-transform:uppercase;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;">
-        Liste Rouge</button>
-      <button class="dash-tab-btn" id="tab-noire" onclick="switchDashTab('noire')"
-        style="flex:1;background:none;border:none;padding:8px;font-size:10px;letter-spacing:2px;
-               text-transform:uppercase;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;">
-        Liste Noire</button>
-    </div>
-
-    <!-- Liste clientes -->
-    <div id="panel-clientes">
-      <div id="clientes-list" style="font-size:13px;color:var(--text3);">Chargement…</div>
-    </div>
-
-    <!-- Liste rouge -->
-    <div id="panel-rouge" style="display:none;">
-      <p style="font-size:11px;color:var(--text3);margin-bottom:10px;">
-        Planning visible mais réservation impossible. Saisir l'email de la cliente.</p>
-      <div style="display:flex;gap:8px;margin-bottom:10px;">
-        <input id="rouge-email-input" type="email" placeholder="email@cliente.fr"
-          style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;
-                 font-size:12px;background:var(--white);color:var(--text);">
-        <button onclick="addListe('rouge')"
-          style="background:var(--or);color:#fff;border:none;border-radius:8px;padding:8px 14px;
-                 font-size:12px;cursor:pointer;">Ajouter</button>
-      </div>
-      <div id="rouge-list"></div>
-    </div>
-
-    <!-- Liste noire -->
-    <div id="panel-noire" style="display:none;">
-      <p style="font-size:11px;color:var(--text3);margin-bottom:10px;">
-        Accès bloqué définitivement. La cliente ne peut plus se connecter.</p>
-      <div style="display:flex;gap:8px;margin-bottom:10px;">
-        <input id="noire-email-input" type="email" placeholder="email@cliente.fr"
-          style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;
-                 font-size:12px;background:var(--white);color:var(--text);">
-        <button onclick="addListe('noire')"
-          style="background:#B85450;color:#fff;border:none;border-radius:8px;padding:8px 14px;
-                 font-size:12px;cursor:pointer;">Ajouter</button>
-      </div>
-      <div id="noire-list"></div>
-    </div>
-
-  </div>
   <div class="section-label" id="dash-date-label">Planning · chargement…</div>
     <div id="dash-planning-list"><div style="padding:12px 16px;font-size:13px;color:var(--text3);">Chargement…</div></div>
 
     <div class="section-label" style="margin-top:8px;">Clientes · Fidélité</div>
     <div id="dash-clientes-fidelite"><div style="padding:8px 0;font-size:13px;color:var(--text3);">Chargement…</div></div>
   </div>
+  </div><!-- /dscreen-home -->
+
+  <!-- ══ SCREEN: PLANNING ══ -->
+  <div class="dash-screen" id="dscreen-planning">
+    <div class="dash-hero">
+      <div class="dash-eyebrow">Gestion</div>
+      <div class="dash-title">Planning</div>
+    </div>
+    <div class="section-label" id="dash-date-label-planning">Planning complet</div>
+    <div id="dash-planning-list-full"><div style="padding:12px 16px;font-size:13px;color:var(--text3);">Chargement…</div></div>
+  </div>
+
+  <!-- ══ SCREEN: CLIENTES ══ -->
+  <div class="dash-screen" id="dscreen-clientes">
+    <div class="dash-hero">
+      <div class="dash-eyebrow">Gestion</div>
+      <div class="dash-title">Clientes</div>
+    </div>
+
+    <div class="section-label" style="margin-top:8px;">Gestion Clientes
+      <button onclick="toggleGestionClientes()" id="btn-gestion"
+        style="margin-left:8px;background:none;border:1px solid var(--border);border-radius:100px;
+               padding:3px 10px;font-size:10px;color:var(--text3);cursor:pointer;letter-spacing:0;
+               text-transform:none;font-weight:400;">Afficher</button>
+    </div>
+    <div id="gestion-clientes-panel" style="display:none;padding:0 16px 8px;">
+      <!-- Onglets -->
+      <div style="display:flex;gap:0;border-bottom:1px solid var(--border2);margin-bottom:12px;">
+        <button class="dash-tab-btn active" id="tab-clientes" onclick="switchDashTab('clientes')"
+          style="flex:1;background:none;border:none;padding:8px;font-size:10px;letter-spacing:2px;
+                 text-transform:uppercase;cursor:pointer;color:var(--text);border-bottom:2px solid var(--or);">
+          Clientes</button>
+        <button class="dash-tab-btn" id="tab-rouge" onclick="switchDashTab('rouge')"
+          style="flex:1;background:none;border:none;padding:8px;font-size:10px;letter-spacing:2px;
+                 text-transform:uppercase;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;">
+          Liste Rouge</button>
+        <button class="dash-tab-btn" id="tab-noire" onclick="switchDashTab('noire')"
+          style="flex:1;background:none;border:none;padding:8px;font-size:10px;letter-spacing:2px;
+                 text-transform:uppercase;cursor:pointer;color:var(--text3);border-bottom:2px solid transparent;">
+          Liste Noire</button>
+      </div>
+
+      <!-- Liste clientes -->
+      <div id="panel-clientes">
+        <div id="clientes-list" style="font-size:13px;color:var(--text3);">Chargement…</div>
+      </div>
+
+      <!-- Liste rouge -->
+      <div id="panel-rouge" style="display:none;">
+        <p style="font-size:11px;color:var(--text3);margin-bottom:10px;">
+          Planning visible mais réservation impossible. Saisir l'email de la cliente.</p>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <input id="rouge-email-input" type="email" placeholder="email@cliente.fr"
+            style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;
+                   font-size:12px;background:var(--white);color:var(--text);">
+          <button onclick="addListe('rouge')"
+            style="background:var(--or);color:#fff;border:none;border-radius:8px;padding:8px 14px;
+                   font-size:12px;cursor:pointer;">Ajouter</button>
+        </div>
+        <div id="rouge-list"></div>
+      </div>
+
+      <!-- Liste noire -->
+      <div id="panel-noire" style="display:none;">
+        <p style="font-size:11px;color:var(--text3);margin-bottom:10px;">
+          Accès bloqué définitivement. La cliente ne peut plus se connecter.</p>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <input id="noire-email-input" type="email" placeholder="email@cliente.fr"
+            style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;
+                   font-size:12px;background:var(--white);color:var(--text);">
+          <button onclick="addListe('noire')"
+            style="background:#B85450;color:#fff;border:none;border-radius:8px;padding:8px 14px;
+                   font-size:12px;cursor:pointer;">Ajouter</button>
+        </div>
+        <div id="noire-list"></div>
+      </div>
+    </div>
+  </div><!-- /dscreen-clientes -->
+
+  <!-- ══ SCREEN: GALERIE ══ -->
+  <div class="dash-screen" id="dscreen-galerie">
+    <div class="dash-hero">
+      <div class="dash-eyebrow">Gestion</div>
+      <div class="dash-title">Galerie</div>
+    </div>
+    <div style="padding:24px 16px;font-size:13px;color:var(--text3);text-align:center;">Galerie photos bientôt disponible.</div>
+  </div>
+
+  <!-- ══ SCREEN: ACTUS ══ -->
+  <div class="dash-screen" id="dscreen-actus">
+    <div class="dash-hero">
+      <div class="dash-eyebrow">Gestion</div>
+      <div class="dash-title">Actus</div>
+    </div>
+    <div style="padding:24px 16px;font-size:13px;color:var(--text3);text-align:center;">Gestion des actualités bientôt disponible.</div>
+  </div>
+
+  <!-- ══ SCREEN: PARAMÈTRES ══ -->
+  <div class="dash-screen" id="dscreen-params">
+    <div class="dash-hero">
+      <div class="dash-eyebrow">Gestion</div>
+      <div class="dash-title">Paramètres</div>
+    </div>
+    <div style="padding:24px 16px;font-size:13px;color:var(--text3);text-align:center;">Configuration avancée bientôt disponible.</div>
+  </div>
+
+  </div><!-- /dash-content -->
 </div>
 
 <script type="module">
@@ -1663,6 +1799,20 @@ function enterMarion() {
   startDashListener();
   loadDashClientes();
 }
+
+// ── Dashboard nav tab switching ──
+function showDashTab(tab) {
+  document.querySelectorAll(".dash-screen").forEach(s => s.classList.remove("active"));
+  const target = document.getElementById("dscreen-" + tab);
+  if (target) target.classList.add("active");
+
+  document.querySelectorAll(".dash-nav-item").forEach(n => n.classList.remove("active"));
+  const navItem = document.querySelector('.dash-nav-item[data-tab="' + tab + '"]');
+  if (navItem) navItem.classList.add("active");
+
+  window.scrollTo(0, 0);
+}
+window.showDashTab = showDashTab;
 
 function applyUser() {
   if (!userProfile && !currentUser) return;
@@ -2779,6 +2929,11 @@ document.addEventListener("DOMContentLoaded", () => {
       if (action === "doConfirmRdv")  window.confirmRdv();
       if (action === "doChangePwd")   window.doChangePwd();
     });
+  });
+
+  // Dashboard nav
+  document.querySelectorAll(".dash-nav-item").forEach(item => {
+    item.addEventListener("click", () => showDashTab(item.dataset.tab));
   });
 
   // Enter key
