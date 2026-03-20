@@ -464,7 +464,8 @@ html, body {
 
 /* Carte calendrier compacte */
 .cal-card {
-  margin: 0 16px 12px;
+  margin: 0 auto 16px;
+  max-width: 320px;
   background: var(--white);
   border-radius: var(--radius);
   border: 1px solid var(--border2);
@@ -1243,8 +1244,8 @@ html, body {
       <div class="cal-grid" id="cal-grid"></div>
     </div>
 
-    <!-- Carte RDV builder -->
-    <div class="rdv-builder">
+    <!-- Carte RDV builder (masqué tant qu'aucun jour sélectionné) -->
+    <div class="rdv-builder" id="rdv-builder-card" style="display:none;">
 
       <!-- Prestation principale -->
       <div class="rdv-builder-section">
@@ -1275,7 +1276,7 @@ html, body {
     </div>
 
     <!-- Résumé tarif + durée + bouton envoi -->
-    <div id="rdv-summary" style="margin:0 16px 10px;background:var(--white);border:1px solid var(--border2);border-radius:var(--radius);padding:14px 16px;">
+    <div id="rdv-summary" style="display:none;margin:0 16px 10px;background:var(--white);border:1px solid var(--border2);border-radius:var(--radius);padding:14px 16px;">
 
       <!-- État vide -->
       <div id="rdv-resume-text" style="font-size:12px;color:var(--text3);font-style:italic;">Sélectionnez une prestation</div>
@@ -1492,8 +1493,19 @@ html, body {
       <div class="dash-eyebrow">Gestion</div>
       <div class="dash-title">Planning</div>
     </div>
-    <div class="section-label" id="dash-date-label-planning">Planning complet</div>
-    <div id="dash-planning-list-full"><div style="padding:12px 16px;font-size:13px;color:var(--text3);">Chargement…</div></div>
+
+    <!-- Calendrier Marion -->
+    <div class="cal-card" id="marion-cal-card">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" id="mcal-prev">‹</button>
+        <div class="cal-month-title" id="mcal-month-label">Mars 2026</div>
+        <button class="cal-nav-btn" id="mcal-next">›</button>
+      </div>
+      <div class="cal-grid" id="mcal-grid"></div>
+    </div>
+
+    <div class="section-label" id="dash-date-label-planning">RDV du jour</div>
+    <div id="dash-planning-list-full"><div style="padding:12px 16px;font-size:13px;color:var(--text3);">Sélectionnez un jour.</div></div>
   </div>
 
   <!-- ══ SCREEN: CLIENTES ══ -->
@@ -2010,12 +2022,20 @@ window.annulerRdv = async function(id) {
 // ═══════════════════════════════════════════════════════
 //  FIRESTORE — DASHBOARD MARION (onSnapshot)
 // ═══════════════════════════════════════════════════════
+let marionRdvsAll = [];
+let mCalY = new Date().getFullYear();
+let mCalM = new Date().getMonth();
+let mSelDay = new Date().getDate();
+
 function startDashListener() {
   const today = new Date();
   const q = query(collection(db, "rdvs"));
   unsubDash = onSnapshot(q, (snap) => {
     const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    marionRdvsAll = all;
     renderDashboard(all, today);
+    renderMarionCal();
+    renderMarionDayRdvs();
   });
 }
 
@@ -2138,6 +2158,86 @@ window.marionRefuse = async function(rdvId, slotId) {
     showToast("RDV refusé — créneau libéré.");
   } catch(e) { showToast("Erreur lors du refus."); }
 };
+
+// ── Marion : Calendrier planning ─────────────────────
+function renderMarionCal() {
+  const grid = document.getElementById("mcal-grid");
+  const label = document.getElementById("mcal-month-label");
+  if (!grid || !label) return;
+  const months = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+  label.textContent = months[mCalM] + " " + mCalY;
+
+  const first = new Date(mCalY, mCalM, 1).getDay();
+  const offset = first === 0 ? 6 : first - 1;
+  const dim = new Date(mCalY, mCalM + 1, 0).getDate();
+  const today = new Date();
+
+  // Jours ayant des RDV confirmés ce mois
+  const rdvDays = [...new Set(
+    marionRdvsAll
+      .filter(r => r.statut !== "annule" && r.statut !== "refuse" && r.mois === mCalM && r.annee === mCalY)
+      .map(r => r.jour)
+  )];
+
+  grid.innerHTML = "";
+  ["L","M","M","J","V","S","D"].forEach(d => {
+    const el = document.createElement("div");
+    el.className = "cal-dl"; el.textContent = d; grid.appendChild(el);
+  });
+  for (let i = 0; i < offset; i++) {
+    const el = document.createElement("div");
+    el.className = "cal-d empty"; grid.appendChild(el);
+  }
+  for (let d = 1; d <= dim; d++) {
+    const el = document.createElement("div");
+    const isToday = d === today.getDate() && mCalM === today.getMonth() && mCalY === today.getFullYear();
+    let cls = "cal-d";
+    if (isToday) cls += " today";
+    if (d === mSelDay && mCalM === today.getMonth() && mCalY === today.getFullYear() || d === mSelDay) cls += " sel";
+    if (rdvDays.includes(d)) cls += " dot";
+    el.className = cls;
+    el.textContent = d;
+    el.onclick = () => { mSelDay = d; renderMarionCal(); renderMarionDayRdvs(); };
+    grid.appendChild(el);
+  }
+}
+
+function renderMarionDayRdvs() {
+  const el = document.getElementById("dash-planning-list-full");
+  const label = document.getElementById("dash-date-label-planning");
+  if (!el) return;
+  const months = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
+  const days = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+  const d = new Date(mCalY, mCalM, mSelDay);
+  if (label) label.textContent = days[d.getDay()] + " " + mSelDay + " " + months[mCalM] + " " + mCalY;
+
+  const rdvJour = marionRdvsAll
+    .filter(r => r.jour === mSelDay && r.mois === mCalM && r.annee === mCalY && r.statut !== "annule" && r.statut !== "refuse")
+    .sort((a, b) => a.heure.localeCompare(b.heure));
+
+  if (!rdvJour.length) {
+    el.innerHTML = "<div style='padding:12px 16px;font-size:13px;color:var(--text3);'>Aucun RDV ce jour.</div>";
+    return;
+  }
+
+  const now = new Date();
+  function heurePassee(heure) {
+    const [h, m] = heure.split("h").map(Number);
+    return new Date(mCalY, mCalM, mSelDay, h, m || 0) < now;
+  }
+
+  el.innerHTML = rdvJour.map(r => {
+    const termine = heurePassee(r.heure);
+    return "<div class='dash-rdv' style='" + (termine ? "opacity:0.5;" : "border-left:3px solid var(--or-light);") + "'>" +
+      "<div class='dash-time'>" + r.heure + "</div>" +
+      "<div class='dash-rdv-info'>" +
+        "<div class='dash-rdv-n'>" + (r.prenom || "") + " " + (r.nom || "") + "</div>" +
+        "<div class='dash-rdv-s'>" + (r.prestation || "") + "</div>" +
+      "</div>" +
+      "<div class='dash-rdv-p'>" + (r.prix || "") + "</div>" +
+    "</div>";
+  }).join("");
+}
 
 // ── Reset password Cliente ──────────────────────────
 window.doChangePwd = async function() {
@@ -2280,6 +2380,10 @@ window.selDate = function(d){
   selDay=d;
   const months=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
   document.getElementById("cr-title").textContent="Créneaux · "+d+" "+months[calM];
+  const builder = document.getElementById("rdv-builder-card");
+  if (builder) builder.style.display = "";
+  const summary = document.getElementById("rdv-summary");
+  if (summary) summary.style.display = "";
   loadSlots().then(renderCal).then(renderCr);
 };
 
@@ -2947,6 +3051,12 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".dash-nav-item").forEach(item => {
     item.addEventListener("click", () => showDashTab(item.dataset.tab));
   });
+
+  // Marion calendar nav
+  const mcPrev = document.getElementById("mcal-prev");
+  const mcNext = document.getElementById("mcal-next");
+  if (mcPrev) mcPrev.addEventListener("click", () => { mCalM--; if(mCalM<0){mCalM=11;mCalY--;} renderMarionCal(); renderMarionDayRdvs(); });
+  if (mcNext) mcNext.addEventListener("click", () => { mCalM++; if(mCalM>11){mCalM=0;mCalY++;} renderMarionCal(); renderMarionDayRdvs(); });
 
   // Enter key
   document.addEventListener("keydown", e => {
