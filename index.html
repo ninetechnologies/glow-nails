@@ -1056,6 +1056,10 @@ html, body {
   from { opacity:0; transform:translateY(12px); }
   to { opacity:1; transform:translateY(0); }
 }
+@keyframes slideDown {
+  from { transform:translateY(-100%); opacity:0; }
+  to { transform:translateY(0); opacity:1; }
+}
 
 /* ===== FORMS LOGIN ===== */
 .login-form {
@@ -1482,8 +1486,9 @@ html, body {
 
   <!-- DASHBOARD NAV -->
   <nav class="dash-nav">
-    <button class="dash-nav-item active" data-tab="home">
+    <button class="dash-nav-item active" data-tab="home" style="position:relative;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span class="nav-label">Accueil</span>
+      <span id="dash-badge-attente" style="display:none;position:absolute;top:2px;right:8px;background:#B85450;color:#fff;font-size:9px;font-weight:600;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:100px;padding:0 4px;"></span>
     </button>
     <button class="dash-nav-item" data-tab="planning">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span class="nav-label">Planning</span>
@@ -1948,6 +1953,22 @@ function startRdvsListener() {
     renderCal();
     if (typeof renderCr === "function") renderCr();
   });
+
+  // Écouter les notifications (RDV refusé + alternatives)
+  const nq = query(collection(db, "notifications"), where("uid", "==", currentUser.uid), where("lu", "==", false));
+  onSnapshot(nq, (snap) => {
+    snap.docs.forEach(async (d) => {
+      const n = d.data();
+      if (n.type === "rdv_refuse") {
+        let msg = n.message || "Un RDV a été refusé.";
+        if (n.alternatives && n.alternatives.length) {
+          msg += "\n\nCréneaux suggérés :\n" + n.alternatives.map(a => "• " + a.date + " à " + a.heure).join("\n");
+        }
+        showNotifBanner(msg);
+        await updateDoc(doc(db, "notifications", d.id), { lu: true });
+      }
+    });
+  });
 }
 
 // ── Helpers RDV ─────────────────────────────────────
@@ -1963,15 +1984,15 @@ function getProchainRdv() {
 // ── Confirmer RDV ────────────────────────────────────
 // ── Catalogue prestations ─────────────────────────────
 const PRESTAS = [
-  { id:"gainage",    label:"Gainage ongles naturels", duree:90,  prix:35, groupe:"pose" },
-  { id:"rallonge",   label:"Rallongement gel",         duree:105, prix:45, groupe:"pose" },
+  { id:"gainage",    label:"Gainage ongles naturels", duree:60,  prix:35, groupe:"pose" },
+  { id:"rallonge",   label:"Rallongement gel",         duree:150, prix:45, groupe:"pose" },
   { id:"remplissage",label:"Remplissage 3 à 4 sem.",   duree:90,  prix:40, groupe:"pose" },
-  { id:"pedicure",   label:"Pédicure",                 duree:105, prix:40, groupe:"extra" },
+  { id:"pedicure",   label:"Pédicure",                 duree:60,  prix:40, groupe:"extra" },
   { id:"depose",     label:"Dépose complète",           duree:45,  prix:10, groupe:"extra" },
-  { id:"mainpied",   label:"Main + Pied",               duree:240, prix:75, groupe:"solo" },
-  { id:"french",     label:"French classique",          duree:45,  prix:8,  groupe:"finition" },
-  { id:"frenchautre",label:"Autres french",             duree:25,  prix:10, groupe:"finition" },
-  { id:"babyboomer", label:"Baby boomer",               duree:45,  prix:10, groupe:"finition" },
+  { id:"mainpied",   label:"Main + Pied",               duree:120, prix:75, groupe:"solo" },
+  { id:"french",     label:"French classique",          duree:75,  prix:8,  groupe:"finition" },
+  { id:"frenchautre",label:"Autres french",             duree:75,  prix:10, groupe:"finition" },
+  { id:"babyboomer", label:"Baby boomer",               duree:90,  prix:10, groupe:"finition" },
 ];
 
 // Règles de compatibilité
@@ -2011,6 +2032,7 @@ NA_OPTIONS.forEach(n => { TARIFS[n.label] = n.prix + "€"; });
 window.confirmRdv = async function() {
   if (!currentUser) { showToast("Connectez-vous pour réserver."); return; }
   if (window._clienteRouge) { showToast("⚠ Réservation non autorisée. Contactez le salon."); return; }
+  if (isDayBlocked(calY, calM, selDay)) { showToast("⚠ Cette journée n'est pas disponible."); return; }
   if (!selPrestas.length) { showToast("Veuillez choisir une prestation."); return; }
   const labels = selPrestas.map(x => x.label);
   selNAs.forEach(n => labels.push(n.label));
@@ -2179,6 +2201,14 @@ function renderDashboard(rdvs, today) {
   // Demandes en attente
   const enAttente = rdvs.filter(r => r.statut === "en_attente")
     .sort((a,b) => new Date(a.annee,a.mois,a.jour) - new Date(b.annee,b.mois,b.jour));
+
+  // Badge alerte sur nav
+  const badgeAttente = document.getElementById("dash-badge-attente");
+  if (badgeAttente) {
+    if (enAttente.length) { badgeAttente.textContent = enAttente.length; badgeAttente.style.display = ""; }
+    else { badgeAttente.style.display = "none"; }
+  }
+
   const attenteEl      = document.getElementById("dash-attente-list");
   const attenteSection = document.getElementById("dash-attente-section");
   if (attenteEl && attenteSection) {
@@ -2222,11 +2252,62 @@ window.marionConfirme = async function(rdvId, slotId) {
 // ── Marion : refuser un RDV ──────────────────────────
 window.marionRefuse = async function(rdvId, slotId) {
   try {
+    // Récupérer le RDV pour les infos de prestation et uid
+    const rdvSnap = await getDoc(doc(db, "rdvs", rdvId));
+    const rdvData = rdvSnap.exists() ? rdvSnap.data() : null;
+
     await updateDoc(doc(db, "rdvs", rdvId), { statut: "refuse" });
     await setDoc(doc(db, "slots", slotId), { pris: false, statut: "libre", ts: serverTimestamp() });
-    showToast("RDV refusé — créneau libéré.");
+
+    // Calculer 3 prochains créneaux dispo pour la même prestation
+    if (rdvData && rdvData.uid) {
+      const alternatives = await find3NextSlots(rdvData);
+      await addDoc(collection(db, "notifications"), {
+        uid: rdvData.uid,
+        type: "rdv_refuse",
+        message: "Votre RDV du " + (rdvData.date || "") + " à " + (rdvData.heure || "") + " a été refusé.",
+        alternatives: alternatives,
+        prestation: rdvData.prestation || "",
+        lu: false,
+        ts: serverTimestamp()
+      });
+    }
+
+    showToast("RDV refusé — créneau libéré + notification envoyée.");
   } catch(e) { showToast("Erreur lors du refus."); }
 };
+
+// ── Trouver 3 prochains créneaux disponibles ────────
+async function find3NextSlots(rdvData) {
+  const CRENEAUX = ["9h00","10h00","14h00","15h30"];
+  const results = [];
+  const now = new Date();
+  let checkDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  const maxDate = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+
+  // Charger tous les slots pris
+  const slotsSnap = await getDocs(query(collection(db, "slots"), where("pris", "==", true)));
+  const slotsPris = {};
+  slotsSnap.docs.forEach(d => { slotsPris[d.id] = true; });
+
+  while (results.length < 3 && checkDate <= maxDate) {
+    const y = checkDate.getFullYear(), m = checkDate.getMonth(), d = checkDate.getDate();
+    const dow = checkDate.getDay();
+    // Skip dimanches et jours bloqués
+    if (dow !== 0 && !isDayBlocked(y, m, d)) {
+      for (const cr of CRENEAUX) {
+        const slotId = y + "-" + m + "-" + d + "-" + cr.replace("h","");
+        if (!slotsPris[slotId]) {
+          const months = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+          results.push({ date: d + " " + months[m] + " " + y, heure: cr });
+          if (results.length >= 3) break;
+        }
+      }
+    }
+    checkDate.setDate(checkDate.getDate() + 1);
+  }
+  return results;
+}
 
 // ── Marion : Calendrier planning ─────────────────────
 function renderMarionCal() {
@@ -2573,6 +2654,7 @@ function renderCal(){
 
 window.selDate = function(d){
   if(isPastDay(d)) return;
+  if(isDayBlocked(calY,calM,d)) return;
   selDay=d;
   const months=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
   document.getElementById("cr-title").textContent="Créneaux · "+d+" "+months[calM];
@@ -3039,6 +3121,20 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove("show"),3000);
 }
 window.showToast = showToast;
+
+function showNotifBanner(msg) {
+  const existing = document.getElementById("notif-banner");
+  if (existing) existing.remove();
+  const banner = document.createElement("div");
+  banner.id = "notif-banner";
+  banner.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:10000;background:linear-gradient(135deg,#FDF6E8,#F5E6CC);border-bottom:2px solid var(--or);padding:16px 20px;box-shadow:0 4px 20px rgba(0,0,0,0.15);animation:slideDown 0.3s ease;";
+  banner.innerHTML = "<div style='max-width:400px;margin:0 auto;'>" +
+    "<div style='font-size:12px;font-weight:500;color:var(--text);margin-bottom:4px;'>Notification</div>" +
+    "<div style='font-size:12px;color:var(--text2);white-space:pre-line;line-height:1.5;'>" + msg.replace(/\n/g, "<br>") + "</div>" +
+    "<button onclick='this.parentElement.parentElement.remove()' style='margin-top:10px;background:var(--text);color:#fff;border:none;border-radius:100px;padding:6px 16px;font-size:11px;cursor:pointer;'>Compris</button>" +
+  "</div>";
+  document.body.appendChild(banner);
+}
 
 function renderDStamps(){} // kept for compat
 
