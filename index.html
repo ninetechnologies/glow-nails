@@ -2095,6 +2095,7 @@ window.confirmRdv = async function() {
       showToast("⚠ Ce créneau est déjà pris. Choisissez un autre horaire.");
       renderCr(); return;
     }
+    console.error("[RDV] Erreur transaction slots:", e.code || e.message, e);
     showToast("Erreur réseau. Réessayez."); return;
   }
 
@@ -2118,6 +2119,7 @@ window.confirmRdv = async function() {
     });
     showToast("✦ Demande envoyée · Marion vous confirme sous peu !");
   } catch(e) {
+    console.error("[RDV] Erreur addDoc rdvs:", e.code || e.message, e);
     showToast("Erreur lors de la réservation.");
   } finally {
     if (btn) { btn.textContent = "Confirmer le Rendez-vous"; btn.disabled = false; }
@@ -2135,7 +2137,7 @@ window.annulerRdv = async function(id) {
       const creneauId = rdv.annee + "-" + rdv.mois + "-" + rdv.jour + "-" + rdv.heure.replace("h","");
       await updateDoc(doc(db, "slots", creneauId), { pris: false });
     }
-  } catch(e) { showToast("Erreur lors de l'annulation."); }
+  } catch(e) { console.error("[RDV] Erreur annulation:", e.code || e.message, e); showToast("Erreur lors de l'annulation."); }
 };
 
 // ═══════════════════════════════════════════════════════
