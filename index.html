@@ -1057,7 +1057,7 @@ html, body {
     <div id="login-blocked-msg" style="display:none;width:100%;text-align:center;font-size:12px;color:#B85450;background:rgba(184,84,80,0.08);border:1px solid rgba(184,84,80,0.2);border-radius:8px;padding:10px 14px;margin-bottom:12px;"></div>
     <div id="view-main" class="login-btns">
       <button class="btn-main" data-action="showConn">✦ &nbsp;Espace Cliente</button>
-      <button class="btn-ghost" data-action="showMarion">Espace Marion</button>
+      <button class="btn-ghost" data-action="showMarion">Espace Gérance</button>
     </div>
 
     <!-- VUE CONNEXION -->
@@ -1572,7 +1572,7 @@ window.doLogin = async function() {
   }
 };
 
-// ── Login Marion (bouton "Espace Marion") ────────────
+// ── Login Marion (bouton "Espace Gérance") ────────────
 window.doLoginMarion = async function() {
   setErr("marion-error", "");
   await new Promise(r => setTimeout(r, 50));
