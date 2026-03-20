@@ -1627,6 +1627,12 @@ html, body {
         <div id="clientes-list" style="font-size:13px;color:var(--text3);">Chargement…</div>
       </div>
 
+      <!-- Fiche cliente détaillée (masquée par défaut) -->
+      <div id="fiche-cliente" style="display:none;">
+        <button id="fiche-back" style="background:none;border:none;font-size:13px;color:var(--or);cursor:pointer;padding:0 0 12px;font-family:inherit;">← Retour à la liste</button>
+        <div id="fiche-content"></div>
+      </div>
+
       <!-- Liste rouge -->
       <div id="panel-rouge" style="display:none;">
         <p style="font-size:11px;color:var(--text3);margin-bottom:10px;">
@@ -1918,6 +1924,7 @@ function showDashTab(tab) {
   const navItem = document.querySelector('.dash-nav-item[data-tab="' + tab + '"]');
   if (navItem) navItem.classList.add("active");
 
+  if (tab === "clientes") loadClientes();
   window.scrollTo(0, 0);
 }
 window.showDashTab = showDashTab;
@@ -1977,8 +1984,8 @@ function startRdvsListener() {
   onSnapshot(nq, (snap) => {
     snap.docs.forEach(async (d) => {
       const n = d.data();
-      if (n.type === "rdv_refuse") {
-        let msg = n.message || "Un RDV a été refusé.";
+      if (n.type === "rdv_refuse" || n.type === "rdv_annule" || n.type === "rdv_modifie") {
+        let msg = n.message || "Mise à jour de votre RDV.";
         if (n.alternatives && n.alternatives.length) {
           msg += "\n\nCréneaux suggérés :\n" + n.alternatives.map(a => "• " + a.date + " à " + a.heure).join("\n");
         }
@@ -3323,72 +3330,270 @@ window.switchDashTab = function(tab) {
 };
 
 // ── Charger toutes les clientes (collection users) ──
+let allClientesData = []; // cache pour fiche détaillée
+
 async function loadClientes() {
   const el = document.getElementById("clientes-list");
   if (!el) return;
+  // Masquer fiche si ouverte
+  const fiche = document.getElementById("fiche-cliente");
+  if (fiche) fiche.style.display = "none";
+  const panel = document.getElementById("panel-clientes");
+  if (panel) panel.querySelector("#clientes-list").style.display = "";
+
   el.innerHTML = "<div style='color:var(--text3);font-size:12px;'>Chargement…</div>";
   try {
-    const snap = await getDocs(collection(db, "users"));
-    if (snap.empty) {
-      el.innerHTML = "<div style='color:var(--text3);font-size:12px;'>Aucune cliente inscrite.</div>";
-      return;
-    }
-    const [rSnap, nSnap] = await Promise.all([
+    const [usersSnap, rdvsSnap, rSnap, nSnap] = await Promise.all([
+      getDocs(collection(db, "users")),
+      getDocs(collection(db, "rdvs")),
       getDoc(doc(db, "listes", "rouge")),
       getDoc(doc(db, "listes", "noire"))
     ]);
+    if (usersSnap.empty) {
+      el.innerHTML = "<div style='color:var(--text3);font-size:12px;'>Aucune cliente inscrite.</div>";
+      return;
+    }
     const rouge = (rSnap.exists() ? rSnap.data().emails : []) || [];
     const noire = (nSnap.exists() ? nSnap.data().emails : []) || [];
+    const allRdvs = rdvsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const now = new Date();
 
+    allClientesData = [];
     let html = "";
-    snap.docs.forEach(d => {
+    usersSnap.docs.forEach(d => {
       const u = d.data();
-      const isRouge = rouge.includes(u.email);
-      const isNoire = noire.includes(u.email);
-      const badge = isNoire
-        ? "<span style='font-size:9px;background:#B85450;color:#fff;padding:2px 7px;border-radius:100px;margin-left:6px;'>Noire</span>"
-        : isRouge
-        ? "<span style='font-size:9px;background:var(--or);color:#fff;padding:2px 7px;border-radius:100px;margin-left:6px;'>Rouge</span>"
-        : "";
-
-      const btnRouge = (!isNoire && !isRouge)
-        ? "<button data-liste='rouge' data-email='" + u.email + "' data-action='addListe' style='background:none;border:1px solid var(--or);border-radius:100px;padding:3px 8px;font-size:9px;color:var(--or);cursor:pointer;'>Rouge</button>"
-        : "";
-      const btnNoire = !isNoire
-        ? "<button data-liste='noire' data-email='" + u.email + "' data-action='addListe' style='background:none;border:1px solid #B85450;border-radius:100px;padding:3px 8px;font-size:9px;color:#B85450;cursor:pointer;'>Bannir</button>"
-        : "";
-      const btnRetirer = (isRouge || isNoire)
-        ? "<button data-email='" + u.email + "' data-action='removeListe' style='background:none;border:1px solid var(--border);border-radius:100px;padding:3px 8px;font-size:9px;color:var(--text3);cursor:pointer;'>Retirer</button>"
-        : "";
-
+      const uid = d.id;
       const prenom = u.prenom || "";
-      const nom2   = (u.nom || "").split(" ")[1] || "";
+      const nom = u.nom || "";
+      const email = u.email || "";
+      const depuis = u.depuis || "—";
+      const isRouge = rouge.includes(email);
+      const isNoire = noire.includes(email);
+
+      // RDV de cette cliente
+      const userRdvs = allRdvs.filter(r => r.uid === uid);
+      const visites = userRdvs.filter(r => r.statut === "confirme" && new Date(r.annee, r.mois, r.jour) < now).length;
+      const prochainRdv = userRdvs
+        .filter(r => (r.statut === "confirme" || r.statut === "en_attente") && new Date(r.annee, r.mois, r.jour) >= now)
+        .sort((a,b) => new Date(a.annee,a.mois,a.jour) - new Date(b.annee,b.mois,b.jour))[0] || null;
+
+      const fideliteLevel = visites >= 20 ? "Gold" : visites >= 10 ? "Silver" : visites >= 5 ? "Bronze" : "";
+      const fideliteBadge = fideliteLevel
+        ? "<span style='font-size:8px;background:" + (fideliteLevel==="Gold"?"var(--or)":fideliteLevel==="Silver"?"#9E9E9E":"#CD7F32") + ";color:#fff;padding:2px 6px;border-radius:100px;margin-left:4px;'>" + fideliteLevel + "</span>"
+        : "";
+      const listeBadge = isNoire
+        ? "<span style='font-size:8px;background:#B85450;color:#fff;padding:2px 6px;border-radius:100px;margin-left:4px;'>Noire</span>"
+        : isRouge
+        ? "<span style='font-size:8px;background:var(--or);color:#fff;padding:2px 6px;border-radius:100px;margin-left:4px;'>Rouge</span>"
+        : "";
+
+      const prochainStr = prochainRdv
+        ? prochainRdv.date + " · " + prochainRdv.heure
+        : "Aucun RDV à venir";
+      const initial = prenom.charAt(0).toUpperCase() || "?";
+
+      // Stocker pour la fiche
+      allClientesData.push({ uid, prenom, nom, email, depuis, isRouge, isNoire, visites, userRdvs, prochainRdv });
+
       html +=
-        "<div style='display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border2);'>" +
-          "<div>" +
-            "<div style='font-size:13px;font-weight:500;color:var(--text);'>" + prenom + " " + nom2 + badge + "</div>" +
-            "<div style='font-size:11px;color:var(--text3);margin-top:2px;'>" + (u.email||"") + " · Cliente depuis " + (u.depuis||"—") + "</div>" +
+        "<div class='cliente-row' data-uid='" + uid + "' style='display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border2);cursor:pointer;'>" +
+          "<div style='width:36px;height:36px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:var(--or);flex-shrink:0;'>" + initial + "</div>" +
+          "<div style='flex:1;min-width:0;'>" +
+            "<div style='font-size:13px;font-weight:500;color:var(--text);display:flex;align-items:center;flex-wrap:wrap;gap:2px;'>" + prenom + " " + nom + fideliteBadge + listeBadge + "</div>" +
+            "<div style='font-size:11px;color:var(--text3);margin-top:2px;'>" + prochainStr + "</div>" +
+            "<div style='font-size:10px;color:var(--text3);margin-top:1px;'>" + visites + " visite" + (visites > 1 ? "s" : "") + " · Depuis " + depuis + "</div>" +
           "</div>" +
-          "<div style='display:flex;gap:4px;'>" + btnRouge + btnNoire + btnRetirer + "</div>" +
+          "<div style='font-size:16px;color:var(--text3);'>›</div>" +
         "</div>";
     });
     el.innerHTML = html;
 
-    // Brancher les boutons dynamiques
-    el.querySelectorAll("[data-action='addListe']").forEach(btn => {
-      btn.addEventListener("click", () => addListeEmail(btn.dataset.liste, btn.dataset.email));
-    });
-    el.querySelectorAll("[data-action='removeListe']").forEach(btn => {
-      btn.addEventListener("click", () => {
-        removeListeEmail("rouge", btn.dataset.email);
-        removeListeEmail("noire", btn.dataset.email);
-      });
+    // Clic → ouvrir fiche
+    el.querySelectorAll(".cliente-row").forEach(row => {
+      row.addEventListener("click", () => openFicheCliente(row.dataset.uid));
     });
 
   } catch(e) {
     console.error(e);
     el.innerHTML = "<div style='color:#B85450;font-size:12px;'>Erreur chargement.</div>";
   }
+}
+
+// ── Fiche cliente détaillée ──────────────────────────
+async function openFicheCliente(uid) {
+  const c = allClientesData.find(c => c.uid === uid);
+  if (!c) return;
+  const listEl = document.getElementById("clientes-list");
+  const ficheEl = document.getElementById("fiche-cliente");
+  const contentEl = document.getElementById("fiche-content");
+  if (!ficheEl || !contentEl) return;
+  if (listEl) listEl.style.display = "none";
+  ficheEl.style.display = "";
+
+  const now = new Date();
+  const rdvAvenir = c.userRdvs
+    .filter(r => (r.statut === "confirme" || r.statut === "en_attente") && new Date(r.annee, r.mois, r.jour) >= now)
+    .sort((a,b) => new Date(a.annee,a.mois,a.jour) - new Date(b.annee,b.mois,b.jour));
+  const rdvPasses = c.userRdvs
+    .filter(r => r.statut === "confirme" && new Date(r.annee, r.mois, r.jour) < now)
+    .sort((a,b) => new Date(b.annee,b.mois,b.jour) - new Date(a.annee,a.mois,a.jour));
+
+  // Charger notes existantes
+  let notes = "";
+  try {
+    const noteSnap = await getDoc(doc(db, "notes_clientes", uid));
+    if (noteSnap.exists()) notes = noteSnap.data().texte || "";
+  } catch(e) {}
+
+  const fideliteLevel = c.visites >= 20 ? "Gold" : c.visites >= 10 ? "Silver" : c.visites >= 5 ? "Bronze" : "—";
+  const listeBadge = c.isNoire ? "<span style='color:#B85450;font-weight:500;'>Liste Noire</span>"
+    : c.isRouge ? "<span style='color:var(--or);font-weight:500;'>Liste Rouge</span>" : "Aucun";
+
+  let html = "";
+
+  // Infos personnelles
+  html += "<div style='background:var(--white);border-radius:var(--radius);border:1px solid var(--border2);padding:16px;margin-bottom:12px;'>" +
+    "<div style='font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--or);margin-bottom:10px;'>Informations</div>" +
+    "<div style='display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;'>" +
+      "<div><span style='color:var(--text3);'>Nom</span><br><strong>" + c.prenom + " " + c.nom + "</strong></div>" +
+      "<div><span style='color:var(--text3);'>Email</span><br>" + c.email + "</div>" +
+      "<div><span style='color:var(--text3);'>Membre depuis</span><br>" + c.depuis + "</div>" +
+      "<div><span style='color:var(--text3);'>Visites</span><br>" + c.visites + "</div>" +
+      "<div><span style='color:var(--text3);'>Fidélité</span><br><strong>" + fideliteLevel + "</strong></div>" +
+      "<div><span style='color:var(--text3);'>Statut</span><br>" + listeBadge + "</div>" +
+    "</div></div>";
+
+  // RDV à venir
+  html += "<div style='background:var(--white);border-radius:var(--radius);border:1px solid var(--border2);padding:16px;margin-bottom:12px;'>" +
+    "<div style='font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--or);margin-bottom:10px;'>RDV à venir (" + rdvAvenir.length + ")</div>";
+  if (!rdvAvenir.length) {
+    html += "<div style='font-size:12px;color:var(--text3);'>Aucun RDV à venir.</div>";
+  } else {
+    rdvAvenir.forEach(r => {
+      const statutLabel = r.statut === "en_attente" ? "<span style='color:var(--or);'>En attente</span>" : "<span style='color:#5A9E6F;'>Confirmé</span>";
+      html += "<div style='display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border2);'>" +
+        "<div style='flex:1;'>" +
+          "<div style='font-size:12px;font-weight:500;'>" + (r.date||"") + " · " + (r.heure||"") + "</div>" +
+          "<div style='font-size:11px;color:var(--text3);'>" + (r.prestation||"") + " · " + statutLabel + "</div>" +
+        "</div>" +
+        "<div style='display:flex;gap:4px;flex-shrink:0;'>" +
+          "<button data-rdvid='" + r.id + "' data-action='fiche-annuler' style='background:none;border:1px solid var(--border);border-radius:100px;padding:3px 8px;font-size:9px;color:var(--text3);cursor:pointer;'>Annuler</button>" +
+          "<button data-rdvid='" + r.id + "' data-action='fiche-desist' style='background:none;border:1px solid var(--border);border-radius:100px;padding:3px 8px;font-size:9px;color:var(--text3);cursor:pointer;'>Désist.</button>" +
+          "<button data-rdvid='" + r.id + "' data-action='fiche-modifier' style='background:none;border:1px solid var(--or);border-radius:100px;padding:3px 8px;font-size:9px;color:var(--or);cursor:pointer;'>Modifier</button>" +
+        "</div></div>";
+    });
+  }
+  html += "</div>";
+
+  // RDV passés
+  html += "<div style='background:var(--white);border-radius:var(--radius);border:1px solid var(--border2);padding:16px;margin-bottom:12px;'>" +
+    "<div style='font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:10px;'>Historique (" + rdvPasses.length + ")</div>";
+  if (!rdvPasses.length) {
+    html += "<div style='font-size:12px;color:var(--text3);'>Aucun RDV passé.</div>";
+  } else {
+    rdvPasses.slice(0, 20).forEach(r => {
+      html += "<div style='display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2);font-size:11px;'>" +
+        "<div>" + (r.date||"") + " · " + (r.heure||"") + " — " + (r.prestation||"") + "</div>" +
+        "<div style='color:var(--or);font-weight:500;'>" + (r.prix||"") + "</div>" +
+      "</div>";
+    });
+    if (rdvPasses.length > 20) html += "<div style='font-size:10px;color:var(--text3);padding:6px 0;'>+ " + (rdvPasses.length - 20) + " autres…</div>";
+  }
+  html += "</div>";
+
+  // Notes Marion
+  html += "<div style='background:var(--white);border-radius:var(--radius);border:1px solid var(--border2);padding:16px;margin-bottom:12px;'>" +
+    "<div style='font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--or);margin-bottom:10px;'>Notes Marion</div>" +
+    "<textarea id='fiche-notes' data-uid='" + uid + "' style='width:100%;min-height:60px;border:1px solid var(--border2);border-radius:8px;padding:8px 12px;font-size:12px;font-family:inherit;color:var(--text);background:var(--bg);resize:vertical;box-sizing:border-box;'>" + notes + "</textarea>" +
+    "<button id='btn-save-notes' data-uid='" + uid + "' style='margin-top:8px;background:var(--text);color:#fff;border:none;border-radius:100px;padding:6px 14px;font-size:11px;cursor:pointer;'>Sauvegarder</button>" +
+  "</div>";
+
+  contentEl.innerHTML = html;
+
+  // Brancher les boutons
+  contentEl.querySelectorAll("[data-action='fiche-annuler']").forEach(btn => {
+    btn.addEventListener("click", () => ficheAnnulerRdv(btn.dataset.rdvid, uid, "annule"));
+  });
+  contentEl.querySelectorAll("[data-action='fiche-desist']").forEach(btn => {
+    btn.addEventListener("click", () => ficheAnnulerRdv(btn.dataset.rdvid, uid, "desistement"));
+  });
+  contentEl.querySelectorAll("[data-action='fiche-modifier']").forEach(btn => {
+    btn.addEventListener("click", () => ficheModifierRdv(btn.dataset.rdvid));
+  });
+  const btnNotes = document.getElementById("btn-save-notes");
+  if (btnNotes) btnNotes.addEventListener("click", () => saveNotes(btnNotes.dataset.uid));
+}
+
+// ── Annuler / Désistement RDV depuis fiche ──────────
+async function ficheAnnulerRdv(rdvId, clienteUid, statut) {
+  try {
+    const rdvSnap = await getDoc(doc(db, "rdvs", rdvId));
+    if (!rdvSnap.exists()) return;
+    const r = rdvSnap.data();
+    await updateDoc(doc(db, "rdvs", rdvId), { statut });
+    // Libérer le créneau
+    const slotId = r.annee + "-" + r.mois + "-" + r.jour + "-" + r.heure.replace("h","");
+    await setDoc(doc(db, "slots", slotId), { pris: false, statut: "libre", ts: serverTimestamp() });
+    // Notifier la cliente
+    const msg = statut === "desistement"
+      ? "Votre RDV du " + (r.date||"") + " à " + (r.heure||"") + " a été libéré (désistement)."
+      : "Votre RDV du " + (r.date||"") + " à " + (r.heure||"") + " a été annulé par le salon.";
+    await addDoc(collection(db, "notifications"), {
+      uid: clienteUid, type: "rdv_annule", message: msg, lu: false, ts: serverTimestamp()
+    });
+    showToast(statut === "desistement" ? "Désistement enregistré." : "RDV annulé + notification envoyée.");
+    openFicheCliente(clienteUid);
+  } catch(e) { showToast("Erreur annulation."); }
+}
+
+// ── Modifier RDV depuis fiche ───────────────────────
+async function ficheModifierRdv(rdvId) {
+  const rdvSnap = await getDoc(doc(db, "rdvs", rdvId));
+  if (!rdvSnap.exists()) return;
+  const r = rdvSnap.data();
+
+  const newDate = prompt("Nouvelle date (JJ/MM/AAAA) :", r.jour + "/" + (r.mois+1) + "/" + r.annee);
+  if (!newDate) return;
+  const newHeure = prompt("Nouvelle heure (ex: 14h00) :", r.heure);
+  if (!newHeure) return;
+
+  const parts = newDate.split("/").map(Number);
+  if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) { showToast("Format date invalide."); return; }
+  const [nj, nm, na] = parts;
+  const newMois = nm - 1;
+  const months = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  const newDateStr = nj + " " + months[newMois] + " " + na;
+
+  try {
+    // Libérer ancien créneau
+    const oldSlotId = r.annee + "-" + r.mois + "-" + r.jour + "-" + r.heure.replace("h","");
+    await setDoc(doc(db, "slots", oldSlotId), { pris: false, statut: "libre", ts: serverTimestamp() });
+    // Réserver nouveau créneau
+    const newSlotId = na + "-" + newMois + "-" + nj + "-" + newHeure.replace("h","");
+    await setDoc(doc(db, "slots", newSlotId), { pris: true, statut: "confirme", uid: r.uid, ts: serverTimestamp() });
+    // Mettre à jour le RDV
+    await updateDoc(doc(db, "rdvs", rdvId), {
+      jour: nj, mois: newMois, annee: na, heure: newHeure, date: newDateStr
+    });
+    // Notifier
+    await addDoc(collection(db, "notifications"), {
+      uid: r.uid, type: "rdv_modifie",
+      message: "Votre RDV a été déplacé au " + newDateStr + " à " + newHeure + ".",
+      lu: false, ts: serverTimestamp()
+    });
+    showToast("✦ RDV modifié + notification envoyée.");
+    openFicheCliente(r.uid);
+  } catch(e) { showToast("Erreur modification."); }
+}
+
+// ── Sauvegarder notes Marion ────────────────────────
+async function saveNotes(uid) {
+  const textarea = document.getElementById("fiche-notes");
+  if (!textarea) return;
+  try {
+    await setDoc(doc(db, "notes_clientes", uid), { texte: textarea.value, ts: serverTimestamp() });
+    showToast("✦ Notes sauvegardées !");
+  } catch(e) { showToast("Erreur sauvegarde notes."); }
 }
 
 // ── Charger clientes fidélité sur le tableau de bord ──
@@ -3541,6 +3746,15 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnGcalC) btnGcalC.addEventListener("click", gcalConnect);
   if (btnGcalD) btnGcalD.addEventListener("click", gcalDisconnect);
   initGCalClient();
+
+  // Fiche cliente : retour à la liste
+  const ficheBack = document.getElementById("fiche-back");
+  if (ficheBack) ficheBack.addEventListener("click", () => {
+    const fiche = document.getElementById("fiche-cliente");
+    const list = document.getElementById("clientes-list");
+    if (fiche) fiche.style.display = "none";
+    if (list) list.style.display = "";
+  });
 
   // Enter key
   document.addEventListener("keydown", e => {
