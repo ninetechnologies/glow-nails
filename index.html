@@ -1652,34 +1652,36 @@ onAuthStateChanged(auth, async (fbUser) => {
   if (fbUser.email === ADMIN_EMAIL) {
     enterMarion();
   } else {
-    // Vérifier listes noire / rouge
-    const listes = await checkListes(fbUser.email);
-    if (listes.noire) {
-      await signOut(auth);
-      showLoginScreen();
-      // Afficher le message sur la vue principale (view-connexion est masqué)
-      const msg = document.getElementById("login-blocked-msg");
-      if (msg) { msg.textContent = "Accès refusé. Contactez le salon."; msg.style.display = "block"; }
-      return;
-    }
-    // Stocker le statut rouge pour le planning
-    window._clienteRouge = listes.rouge;
+    try {
+      // Vérifier listes noire / rouge
+      const listes = await checkListes(fbUser.email);
+      if (listes.noire) {
+        await signOut(auth);
+        showLoginScreen();
+        const msg = document.getElementById("login-blocked-msg");
+        if (msg) { msg.textContent = "Accès refusé. Contactez le salon."; msg.style.display = "block"; }
+        return;
+      }
+      // Stocker le statut rouge pour le planning
+      window._clienteRouge = listes.rouge;
 
-    // Charger/créer le profil Firestore
-    const uRef = doc(db, "users", fbUser.uid);
-    const uSnap = await getDoc(uRef);
-    if (!uSnap.exists()) {
-      // Nouveau compte — créer le profil
-      const prenom = (fbUser.displayName || fbUser.email.split("@")[0]).split(" ")[0];
-      const nom    = fbUser.displayName || prenom;
-      userProfile  = {
-        uid: fbUser.uid, email: fbUser.email,
-        nom, prenom,
-        depuis: new Date().toLocaleDateString("fr-FR", {month:"short", year:"numeric"})
-      };
-      await setDoc(uRef, userProfile);
-    } else {
-      userProfile = uSnap.data();
+      // Charger/créer le profil Firestore
+      const uRef = doc(db, "users", fbUser.uid);
+      const uSnap = await getDoc(uRef);
+      if (!uSnap.exists()) {
+        const prenom = (fbUser.displayName || fbUser.email.split("@")[0]).split(" ")[0];
+        const nom    = fbUser.displayName || prenom;
+        userProfile  = {
+          uid: fbUser.uid, email: fbUser.email,
+          nom, prenom,
+          depuis: new Date().toLocaleDateString("fr-FR", {month:"short", year:"numeric"})
+        };
+        await setDoc(uRef, userProfile);
+      } else {
+        userProfile = uSnap.data();
+      }
+    } catch(e) {
+      console.error("Firestore cliente init error:", e);
     }
     enterCliente();
   }
