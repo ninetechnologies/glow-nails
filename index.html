@@ -1161,7 +1161,11 @@ html, body {
   line-height: 1.5;
 }
 
+.gcal-dot { position:relative; }
+.gcal-dot::after { content:""; position:absolute; bottom:2px; left:50%; transform:translateX(-50%); width:4px; height:4px; border-radius:50%; background:#4285F4; }
+.cal-d.dot.gcal-dot::after { left:calc(50% + 4px); }
 </style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -1571,6 +1575,20 @@ html, body {
     <div style="margin:0 16px 16px;display:flex;gap:8px;">
       <button id="btn-block-day" style="flex:1;background:none;border:1px solid var(--border);border-radius:100px;padding:8px 14px;font-size:11px;cursor:pointer;color:var(--text3);font-weight:400;">🚫 Bloquer cette journée</button>
       <button id="btn-unblock-day" style="flex:1;background:none;border:1px solid var(--border);border-radius:100px;padding:8px 14px;font-size:11px;cursor:pointer;color:var(--text3);font-weight:400;display:none;">✓ Débloquer cette journée</button>
+    </div>
+
+    <!-- Google Calendar -->
+    <div style="margin:0 16px 16px;background:var(--white);border-radius:var(--radius);border:1px solid var(--border2);box-shadow:var(--shadow);padding:14px 16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#4285F4;margin-bottom:2px;">Google Calendar</div>
+          <div id="gcal-status" style="font-size:11px;color:var(--text3);">Non connecté</div>
+        </div>
+        <div>
+          <button id="btn-gcal-connect" style="background:#4285F4;color:#fff;border:none;border-radius:100px;padding:7px 14px;font-size:11px;cursor:pointer;font-weight:500;">Connecter</button>
+          <button id="btn-gcal-disconnect" style="display:none;background:none;border:1px solid var(--border);border-radius:100px;padding:7px 14px;font-size:11px;cursor:pointer;color:var(--text3);">Déconnecter</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2331,6 +2349,7 @@ function renderMarionCal() {
   const agendaDays = [...new Set(
     marionAgendaAll.filter(e => e.mois === mCalM && e.annee === mCalY).map(e => e.jour)
   )];
+  const gcalDays = getGCalDaysForMonth(mCalY, mCalM);
 
   grid.innerHTML = "";
   ["L","M","M","J","V","S","D"].forEach(d => {
@@ -2349,6 +2368,7 @@ function renderMarionCal() {
     if (isToday) cls += " today";
     if (d === mSelDay) cls += " sel";
     if (rdvDays.includes(d) || agendaDays.includes(d)) cls += " dot";
+    if (gcalDays.includes(d)) cls += " gcal-dot";
     if (dayBlocked) cls += " blocked";
     el.className = cls;
     el.textContent = d;
@@ -2451,7 +2471,27 @@ function renderMarionDayRdvs() {
     }).join("");
   }
 
-  if (!rdvJour.length && !evtJour.length && !isBlocked) {
+  // Afficher les événements Google Calendar
+  const gcalJour = getGCalEventsForDay(mCalY, mCalM, mSelDay);
+  if (gcalJour.length) {
+    html += "<div style='font-size:8px;letter-spacing:2px;text-transform:uppercase;color:#4285F4;padding:10px 16px 4px;'>Google Calendar</div>";
+    html += gcalJour.map(e => {
+      let timeStr = "—";
+      if (!e.allDay && e.start) {
+        const sd = new Date(e.start);
+        timeStr = sd.getHours() + "h" + String(sd.getMinutes()).padStart(2, "0");
+      } else { timeStr = "Journée"; }
+      return "<div class='dash-rdv' style='border-left:3px solid #4285F4;opacity:0.85;'>" +
+        "<div class='dash-time'>" + timeStr + "</div>" +
+        "<div class='dash-rdv-info'>" +
+          "<div class='dash-rdv-n'>" + e.titre + "</div>" +
+          "<div class='dash-rdv-s' style='color:#4285F4;font-size:10px;'>Google Calendar</div>" +
+        "</div>" +
+      "</div>";
+    }).join("");
+  }
+
+  if (!rdvJour.length && !evtJour.length && !gcalJour.length && !isBlocked) {
     html = "<div style='padding:12px 16px;font-size:13px;color:var(--text3);'>Aucun RDV ni événement ce jour.</div>";
   }
 
@@ -2477,6 +2517,11 @@ async function addAgendaEvent() {
       jour: mSelDay, mois: mCalM, annee: mCalY,
       heure, titre, ts: serverTimestamp()
     });
+    // Proposer d'ajouter aussi dans Google Calendar
+    if (gcalToken) {
+      const addGcal = confirm("Ajouter aussi dans Google Calendar ?");
+      if (addGcal) await addToGoogleCalendar(titre, heure, mSelDay, mCalM, mCalY);
+    }
     titreInput.value = "";
     heureInput.value = "";
     showToast("✦ Événement ajouté !");
@@ -2513,6 +2558,116 @@ async function unblockDay() {
 // ── Vérifier si un jour est bloqué (pour cliente) ───
 function isDayBlocked(year, month, day) {
   return !!blockedDaysCache[year + "-" + month + "-" + day];
+}
+
+// ═══════════════════════════════════════════════════════
+//  GOOGLE CALENDAR — Marion uniquement (session only)
+// ═══════════════════════════════════════════════════════
+const GCAL_CLIENT_ID = "858297104869-dmt8koallfs96f4375heda62cbnimga8.apps.googleusercontent.com";
+const GCAL_SCOPES = "https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/calendar.events";
+let gcalToken = null; // session only — jamais en localStorage
+let gcalEvents = []; // événements Google Calendar en cache
+let gcalTokenClient = null;
+
+function initGCalClient() {
+  if (!window.google?.accounts?.oauth2) return;
+  gcalTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GCAL_CLIENT_ID,
+    scope: GCAL_SCOPES,
+    callback: (resp) => {
+      if (resp.error) { showToast("Erreur connexion Google."); return; }
+      gcalToken = resp.access_token;
+      updateGCalUI(true);
+      fetchGCalEvents();
+    }
+  });
+}
+
+function gcalConnect() {
+  if (!gcalTokenClient) initGCalClient();
+  if (gcalTokenClient) gcalTokenClient.requestAccessToken();
+}
+
+function gcalDisconnect() {
+  if (gcalToken) {
+    google.accounts.oauth2.revoke(gcalToken);
+  }
+  gcalToken = null;
+  gcalEvents = [];
+  updateGCalUI(false);
+  renderMarionCal();
+  renderMarionDayRdvs();
+}
+
+function updateGCalUI(connected) {
+  const status = document.getElementById("gcal-status");
+  const btnC = document.getElementById("btn-gcal-connect");
+  const btnD = document.getElementById("btn-gcal-disconnect");
+  if (status) status.textContent = connected ? "Connecté ✓" : "Non connecté";
+  if (btnC) btnC.style.display = connected ? "none" : "";
+  if (btnD) btnD.style.display = connected ? "" : "none";
+}
+
+async function fetchGCalEvents() {
+  if (!gcalToken) return;
+  // Récupérer les événements du mois affiché ± 1 mois
+  const timeMin = new Date(mCalY, mCalM - 1, 1).toISOString();
+  const timeMax = new Date(mCalY, mCalM + 2, 0).toISOString();
+  try {
+    const res = await fetch(
+      "https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=" +
+      encodeURIComponent(timeMin) + "&timeMax=" + encodeURIComponent(timeMax) +
+      "&singleEvents=true&orderBy=startTime&maxResults=250",
+      { headers: { Authorization: "Bearer " + gcalToken } }
+    );
+    if (res.status === 401) { gcalToken = null; updateGCalUI(false); showToast("Session Google expirée."); return; }
+    const data = await res.json();
+    gcalEvents = (data.items || []).map(ev => ({
+      id: ev.id,
+      titre: ev.summary || "Sans titre",
+      start: ev.start?.dateTime || ev.start?.date || "",
+      end: ev.end?.dateTime || ev.end?.date || "",
+      allDay: !ev.start?.dateTime
+    }));
+    renderMarionCal();
+    renderMarionDayRdvs();
+  } catch(e) { showToast("Erreur chargement Google Calendar."); }
+}
+
+function getGCalEventsForDay(year, month, day) {
+  return gcalEvents.filter(ev => {
+    const d = new Date(ev.start);
+    return d.getFullYear() === year && d.getMonth() === month && d.getDate() === day;
+  });
+}
+
+function getGCalDaysForMonth(year, month) {
+  const days = new Set();
+  gcalEvents.forEach(ev => {
+    const d = new Date(ev.start);
+    if (d.getFullYear() === year && d.getMonth() === month) days.add(d.getDate());
+  });
+  return [...days];
+}
+
+async function addToGoogleCalendar(titre, heure, jour, mois, annee) {
+  if (!gcalToken) return;
+  const [h, m] = (heure || "9h00").split("h").map(Number);
+  const startDt = new Date(annee, mois, jour, h, m || 0);
+  const endDt = new Date(startDt.getTime() + 60 * 60 * 1000); // +1h par défaut
+  const event = {
+    summary: titre,
+    start: { dateTime: startDt.toISOString(), timeZone: "Europe/Paris" },
+    end: { dateTime: endDt.toISOString(), timeZone: "Europe/Paris" }
+  };
+  try {
+    await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
+      method: "POST",
+      headers: { Authorization: "Bearer " + gcalToken, "Content-Type": "application/json" },
+      body: JSON.stringify(event)
+    });
+    fetchGCalEvents();
+  } catch(e) { /* silently fail */ }
 }
 
 // ── Reset password Cliente ──────────────────────────
@@ -3369,8 +3524,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Marion calendar nav
   const mcPrev = document.getElementById("mcal-prev");
   const mcNext = document.getElementById("mcal-next");
-  if (mcPrev) mcPrev.addEventListener("click", () => { mCalM--; if(mCalM<0){mCalM=11;mCalY--;} renderMarionCal(); renderMarionDayRdvs(); });
-  if (mcNext) mcNext.addEventListener("click", () => { mCalM++; if(mCalM>11){mCalM=0;mCalY++;} renderMarionCal(); renderMarionDayRdvs(); });
+  if (mcPrev) mcPrev.addEventListener("click", () => { mCalM--; if(mCalM<0){mCalM=11;mCalY--;} renderMarionCal(); renderMarionDayRdvs(); if(gcalToken) fetchGCalEvents(); });
+  if (mcNext) mcNext.addEventListener("click", () => { mCalM++; if(mCalM>11){mCalM=0;mCalY++;} renderMarionCal(); renderMarionDayRdvs(); if(gcalToken) fetchGCalEvents(); });
 
   // Agenda Marion : ajouter événement / bloquer jour
   const btnAddAgenda = document.getElementById("btn-add-agenda");
@@ -3379,6 +3534,13 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnBlockDay) btnBlockDay.addEventListener("click", blockDay);
   const btnUnblockDay = document.getElementById("btn-unblock-day");
   if (btnUnblockDay) btnUnblockDay.addEventListener("click", unblockDay);
+
+  // Google Calendar connect/disconnect
+  const btnGcalC = document.getElementById("btn-gcal-connect");
+  const btnGcalD = document.getElementById("btn-gcal-disconnect");
+  if (btnGcalC) btnGcalC.addEventListener("click", gcalConnect);
+  if (btnGcalD) btnGcalD.addEventListener("click", gcalDisconnect);
+  initGCalClient();
 
   // Enter key
   document.addEventListener("keydown", e => {
