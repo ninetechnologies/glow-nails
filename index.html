@@ -569,6 +569,7 @@ html, body {
 .cal-d.dot::after { content:''; position:absolute; bottom:2px; width:3px; height:3px; border-radius:50%; background: var(--or-light); }
 .cal-d.sel.dot::after { background: rgba(255,255,255,0.6); }
 .cal-d.empty, .cal-d.off { color: var(--text3); cursor: default; opacity: 0.3; }
+.cal-d.blocked { background: repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(184,84,80,0.1) 3px, rgba(184,84,80,0.1) 6px); color: #B85450; opacity: 0.5; cursor: default; }
 
 /* Carte RDV sélectionné (résumé date + prestation + créneau) */
 .rdv-builder {
@@ -1550,6 +1551,22 @@ html, body {
 
     <div class="section-label" id="dash-date-label-planning">RDV du jour</div>
     <div id="dash-planning-list-full"><div style="padding:12px 16px;font-size:13px;color:var(--text3);">Sélectionnez un jour.</div></div>
+
+    <!-- Ajouter un événement -->
+    <div style="margin:12px 16px;background:var(--white);border-radius:var(--radius);border:1px solid var(--border2);box-shadow:var(--shadow);padding:14px 16px;">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--or);margin-bottom:10px;">Ajouter un événement</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="time" id="agenda-heure" style="flex:0 0 auto;width:90px;padding:8px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text);background:var(--bg);">
+        <input type="text" id="agenda-titre" placeholder="Titre (ex: Pause, Formation…)" style="flex:1;min-width:120px;padding:8px 12px;border:1px solid var(--border2);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text);background:var(--bg);">
+        <button id="btn-add-agenda" style="background:var(--text);color:#fff;border:none;border-radius:100px;padding:8px 16px;font-size:11px;cursor:pointer;font-weight:500;white-space:nowrap;">+ Ajouter</button>
+      </div>
+    </div>
+
+    <!-- Bloquer la journée -->
+    <div style="margin:0 16px 16px;display:flex;gap:8px;">
+      <button id="btn-block-day" style="flex:1;background:none;border:1px solid var(--border);border-radius:100px;padding:8px 14px;font-size:11px;cursor:pointer;color:var(--text3);font-weight:400;">🚫 Bloquer cette journée</button>
+      <button id="btn-unblock-day" style="flex:1;background:none;border:1px solid var(--border);border-radius:100px;padding:8px 14px;font-size:11px;cursor:pointer;color:var(--text3);font-weight:400;display:none;">✓ Débloquer cette journée</button>
+    </div>
   </div>
 
   <!-- ══ SCREEN: CLIENTES ══ -->
@@ -1659,7 +1676,7 @@ import {
   sendPasswordResetEmail, updateProfile, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, addDoc, getDocs, getDoc, setDoc,
+  getFirestore, collection, doc, addDoc, getDocs, getDoc, setDoc, deleteDoc,
   updateDoc, query, where, orderBy, onSnapshot, serverTimestamp, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -1924,6 +1941,13 @@ function startRdvsListener() {
     refreshLoyalty();
     refreshCalDots();
   });
+  // Écouter les jours bloqués en temps réel côté cliente
+  onSnapshot(collection(db, "blocked"), (snap) => {
+    blockedDaysCache = {};
+    snap.docs.forEach(d => { blockedDaysCache[d.id] = true; });
+    renderCal();
+    if (typeof renderCr === "function") renderCr();
+  });
 }
 
 // ── Helpers RDV ─────────────────────────────────────
@@ -2081,6 +2105,7 @@ function startDashListener() {
     renderMarionCal();
     renderMarionDayRdvs();
   });
+  startAgendaListener();
 }
 
 function renderDashboard(rdvs, today) {
@@ -2216,11 +2241,14 @@ function renderMarionCal() {
   const dim = new Date(mCalY, mCalM + 1, 0).getDate();
   const today = new Date();
 
-  // Jours ayant des RDV confirmés ce mois
+  // Jours ayant des RDV confirmés ou événements agenda ce mois
   const rdvDays = [...new Set(
     marionRdvsAll
       .filter(r => r.statut !== "annule" && r.statut !== "refuse" && r.mois === mCalM && r.annee === mCalY)
       .map(r => r.jour)
+  )];
+  const agendaDays = [...new Set(
+    marionAgendaAll.filter(e => e.mois === mCalM && e.annee === mCalY).map(e => e.jour)
   )];
 
   grid.innerHTML = "";
@@ -2235,15 +2263,41 @@ function renderMarionCal() {
   for (let d = 1; d <= dim; d++) {
     const el = document.createElement("div");
     const isToday = d === today.getDate() && mCalM === today.getMonth() && mCalY === today.getFullYear();
+    const dayBlocked = isDayBlocked(mCalY, mCalM, d);
     let cls = "cal-d";
     if (isToday) cls += " today";
-    if (d === mSelDay && mCalM === today.getMonth() && mCalY === today.getFullYear() || d === mSelDay) cls += " sel";
-    if (rdvDays.includes(d)) cls += " dot";
+    if (d === mSelDay) cls += " sel";
+    if (rdvDays.includes(d) || agendaDays.includes(d)) cls += " dot";
+    if (dayBlocked) cls += " blocked";
     el.className = cls;
     el.textContent = d;
     el.onclick = () => { mSelDay = d; renderMarionCal(); renderMarionDayRdvs(); };
     grid.appendChild(el);
   }
+}
+
+let marionAgendaAll = [];
+let blockedDaysCache = {};
+let unsubAgenda = null;
+let unsubBlocked = null;
+
+function startAgendaListener() {
+  if (unsubAgenda) unsubAgenda();
+  unsubAgenda = onSnapshot(collection(db, "agenda"), (snap) => {
+    marionAgendaAll = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderMarionDayRdvs();
+    renderMarionCal();
+  });
+  if (unsubBlocked) unsubBlocked();
+  unsubBlocked = onSnapshot(collection(db, "blocked"), (snap) => {
+    blockedDaysCache = {};
+    snap.docs.forEach(d => { blockedDaysCache[d.id] = true; });
+    renderMarionDayRdvs();
+    renderMarionCal();
+    // Met à jour le calendrier cliente en temps réel
+    if (typeof renderCr === "function") renderCr();
+    if (typeof renderCal === "function") renderCal();
+  });
 }
 
 function renderMarionDayRdvs() {
@@ -2255,14 +2309,24 @@ function renderMarionDayRdvs() {
   const d = new Date(mCalY, mCalM, mSelDay);
   if (label) label.textContent = days[d.getDay()] + " " + mSelDay + " " + months[mCalM] + " " + mCalY;
 
+  const dayKey = mCalY + "-" + mCalM + "-" + mSelDay;
+  const isBlocked = !!blockedDaysCache[dayKey];
+
+  // Boutons bloquer/débloquer
+  const btnBlock = document.getElementById("btn-block-day");
+  const btnUnblock = document.getElementById("btn-unblock-day");
+  if (btnBlock) btnBlock.style.display = isBlocked ? "none" : "";
+  if (btnUnblock) btnUnblock.style.display = isBlocked ? "" : "none";
+
+  // RDV clientes
   const rdvJour = marionRdvsAll
     .filter(r => r.jour === mSelDay && r.mois === mCalM && r.annee === mCalY && r.statut !== "annule" && r.statut !== "refuse")
     .sort((a, b) => a.heure.localeCompare(b.heure));
 
-  if (!rdvJour.length) {
-    el.innerHTML = "<div style='padding:12px 16px;font-size:13px;color:var(--text3);'>Aucun RDV ce jour.</div>";
-    return;
-  }
+  // Événements agenda Marion
+  const evtJour = marionAgendaAll
+    .filter(e => e.jour === mSelDay && e.mois === mCalM && e.annee === mCalY)
+    .sort((a, b) => (a.heure || "").localeCompare(b.heure || ""));
 
   const now = new Date();
   function heurePassee(heure) {
@@ -2270,17 +2334,104 @@ function renderMarionDayRdvs() {
     return new Date(mCalY, mCalM, mSelDay, h, m || 0) < now;
   }
 
-  el.innerHTML = rdvJour.map(r => {
-    const termine = heurePassee(r.heure);
-    return "<div class='dash-rdv' style='" + (termine ? "opacity:0.5;" : "border-left:3px solid var(--or-light);") + "'>" +
-      "<div class='dash-time'>" + r.heure + "</div>" +
-      "<div class='dash-rdv-info'>" +
-        "<div class='dash-rdv-n'>" + (r.prenom || "") + " " + (r.nom || "") + "</div>" +
-        "<div class='dash-rdv-s'>" + (r.prestation || "") + "</div>" +
-      "</div>" +
-      "<div class='dash-rdv-p'>" + (r.prix || "") + "</div>" +
-    "</div>";
-  }).join("");
+  let html = "";
+
+  if (isBlocked) {
+    html += "<div style='padding:10px 16px;font-size:12px;color:#B85450;background:rgba(184,84,80,0.06);border-radius:8px;margin:8px 16px;'>🚫 Journée bloquée — aucun créneau disponible côté cliente.</div>";
+  }
+
+  // Afficher les RDV clientes
+  if (rdvJour.length) {
+    html += "<div style='font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--or);padding:10px 16px 4px;'>RDV Clientes</div>";
+    html += rdvJour.map(r => {
+      const termine = heurePassee(r.heure);
+      return "<div class='dash-rdv' style='" + (termine ? "opacity:0.5;" : "border-left:3px solid var(--or-light);") + "'>" +
+        "<div class='dash-time'>" + r.heure + "</div>" +
+        "<div class='dash-rdv-info'>" +
+          "<div class='dash-rdv-n'>" + (r.prenom || "") + " " + (r.nom || "") + "</div>" +
+          "<div class='dash-rdv-s'>" + (r.prestation || "") + "</div>" +
+        "</div>" +
+        "<div class='dash-rdv-p'>" + (r.prix || "") + "</div>" +
+      "</div>";
+    }).join("");
+  }
+
+  // Afficher les événements agenda
+  if (evtJour.length) {
+    html += "<div style='font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);padding:10px 16px 4px;'>Événements</div>";
+    html += evtJour.map(e => {
+      return "<div class='dash-rdv' style='border-left:3px solid var(--border2);'>" +
+        "<div class='dash-time'>" + (e.heure || "—") + "</div>" +
+        "<div class='dash-rdv-info'>" +
+          "<div class='dash-rdv-n'>" + (e.titre || "Événement") + "</div>" +
+        "</div>" +
+        "<button data-agenda-id='" + e.id + "' class='btn-del-agenda' style='background:none;border:1px solid var(--border);border-radius:100px;padding:4px 10px;font-size:10px;cursor:pointer;color:var(--text3);'>✕</button>" +
+      "</div>";
+    }).join("");
+  }
+
+  if (!rdvJour.length && !evtJour.length && !isBlocked) {
+    html = "<div style='padding:12px 16px;font-size:13px;color:var(--text3);'>Aucun RDV ni événement ce jour.</div>";
+  }
+
+  el.innerHTML = html;
+
+  // Brancher les boutons supprimer événement
+  el.querySelectorAll(".btn-del-agenda").forEach(btn => {
+    btn.addEventListener("click", () => deleteAgendaEvent(btn.dataset.agendaId));
+  });
+}
+
+// ── Ajouter un événement agenda ─────────────────────
+async function addAgendaEvent() {
+  const heureInput = document.getElementById("agenda-heure");
+  const titreInput = document.getElementById("agenda-titre");
+  if (!heureInput || !titreInput) return;
+  const heureRaw = heureInput.value;
+  const titre = titreInput.value.trim();
+  if (!titre) { showToast("Ajoutez un titre."); return; }
+  const heure = heureRaw ? heureRaw.replace(":", "h") : "";
+  try {
+    await addDoc(collection(db, "agenda"), {
+      jour: mSelDay, mois: mCalM, annee: mCalY,
+      heure, titre, ts: serverTimestamp()
+    });
+    titreInput.value = "";
+    heureInput.value = "";
+    showToast("✦ Événement ajouté !");
+  } catch(e) { showToast("Erreur ajout événement."); }
+}
+
+// ── Supprimer un événement agenda ───────────────────
+async function deleteAgendaEvent(id) {
+  try {
+    await deleteDoc(doc(db, "agenda", id));
+    showToast("Événement supprimé.");
+  } catch(e) { showToast("Erreur suppression."); }
+}
+
+// ── Bloquer / débloquer une journée ─────────────────
+async function blockDay() {
+  const dayKey = mCalY + "-" + mCalM + "-" + mSelDay;
+  try {
+    await setDoc(doc(db, "blocked", dayKey), {
+      jour: mSelDay, mois: mCalM, annee: mCalY, ts: serverTimestamp()
+    });
+    showToast("🚫 Journée bloquée !");
+  } catch(e) { showToast("Erreur blocage."); }
+}
+
+async function unblockDay() {
+  const dayKey = mCalY + "-" + mCalM + "-" + mSelDay;
+  try {
+    await deleteDoc(doc(db, "blocked", dayKey));
+    showToast("✓ Journée débloquée !");
+  } catch(e) { showToast("Erreur déblocage."); }
+}
+
+// ── Vérifier si un jour est bloqué (pour cliente) ───
+function isDayBlocked(year, month, day) {
+  return !!blockedDaysCache[year + "-" + month + "-" + day];
 }
 
 // ── Reset password Cliente ──────────────────────────
@@ -2406,15 +2557,16 @@ function renderCal(){
     const isToday=d===today.getDate()&&calM===today.getMonth()&&calY===today.getFullYear();
     const past=isPastDay(d);
     const dimanche=(dow===6);
+    const dayBlocked=isDayBlocked(calY,calM,d);
     let cls="cal-d";
     if(isToday) cls+=" today";
-    if(d===selDay&&!past&&!dimanche) cls+=" sel";
+    if(d===selDay&&!past&&!dimanche&&!dayBlocked) cls+=" sel";
     if(userDays.includes(d)&&!past) cls+=" dot";
-    if(past||dimanche) cls+=" off";
-    if(!past&&!dimanche&&window._clienteRouge) cls+=" off"; // liste rouge : planning visible mais non réservable
+    if(past||dimanche||dayBlocked) cls+=" off";
+    if(!past&&!dimanche&&window._clienteRouge) cls+=" off";
     el.className=cls;
     el.textContent=d;
-    if(!past&&!dimanche) el.onclick=()=>selDate(d);
+    if(!past&&!dimanche&&!dayBlocked) el.onclick=()=>selDate(d);
     grid.appendChild(el);
   }
 }
@@ -2455,7 +2607,12 @@ function renderCr(){
   if(!grid) return;
   const all=["9h00","10h00","11h30","14h00","15h30","17h00"];
   const ferme=["11h30","17h00"];
+  const dayBlocked=isDayBlocked(calY,calM,selDay);
   grid.innerHTML="";
+  if(dayBlocked){
+    grid.innerHTML="<div style='grid-column:1/-1;text-align:center;font-size:12px;color:var(--text3);padding:12px;'>Journée indisponible</div>";
+    return;
+  }
   all.forEach(c=>{
     const el=document.createElement("div");
     const pris=isSlotPris(c);
@@ -3118,6 +3275,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const mcNext = document.getElementById("mcal-next");
   if (mcPrev) mcPrev.addEventListener("click", () => { mCalM--; if(mCalM<0){mCalM=11;mCalY--;} renderMarionCal(); renderMarionDayRdvs(); });
   if (mcNext) mcNext.addEventListener("click", () => { mCalM++; if(mCalM>11){mCalM=0;mCalY++;} renderMarionCal(); renderMarionDayRdvs(); });
+
+  // Agenda Marion : ajouter événement / bloquer jour
+  const btnAddAgenda = document.getElementById("btn-add-agenda");
+  if (btnAddAgenda) btnAddAgenda.addEventListener("click", addAgendaEvent);
+  const btnBlockDay = document.getElementById("btn-block-day");
+  if (btnBlockDay) btnBlockDay.addEventListener("click", blockDay);
+  const btnUnblockDay = document.getElementById("btn-unblock-day");
+  if (btnUnblockDay) btnUnblockDay.addEventListener("click", unblockDay);
 
   // Enter key
   document.addEventListener("keydown", e => {
