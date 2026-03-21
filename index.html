@@ -2152,6 +2152,16 @@ window.doRegister = async function() {
       rgpdConsent: true,
       rgpdDate: new Date().toISOString()
     }, { merge: true });
+    // Email de bienvenue (non bloquant)
+    const prenom = nom.split(" ")[0];
+    try {
+      await emailjs.send("service_p8pkbcd", "template_bienvenue", {
+        to_email:    email,
+        to_name:     prenom,
+        salon_name:  "Glow Nails",
+        salon_phone: "glownails.contact31@gmail.com"
+      });
+    } catch(mailErr) { console.error("Email bienvenue échoué:", mailErr); }
   } catch(e) {
     setErr("reg-error", fbErr(e.code));
   } finally {
