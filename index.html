@@ -8,6 +8,14 @@
 <meta name="keywords" content="prothésiste ongulaire, Saint-Gaudens, pose gel, nail art, manucure, ongles, Glow Nails, 31800, Haute-Garonne">
 <meta name="author" content="Glow Nails">
 
+<!-- PWA -->
+<meta name="theme-color" content="#c9a96e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Glow Nails">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.svg">
+
 <!-- Open Graph -->
 <meta property="og:title" content="Glow Nails — Prothésiste Ongulaire · Saint-Gaudens">
 <meta property="og:description" content="Pose de gel, résine, nail art et manucure à Saint-Gaudens. Réservez en ligne votre créneau.">
@@ -5042,6 +5050,17 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+</script>
+
+<!-- Service Worker -->
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js")
+      .then(r => console.log("SW registered:", r.scope))
+      .catch(e => console.error("SW registration failed:", e));
+  });
+}
 </script>
 </body>
 </html>
