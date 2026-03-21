@@ -492,6 +492,62 @@ html, body {
 
 .gallery-item:active { transform: scale(0.97); }
 
+/* ===== PHOTO GRID (Storage) ===== */
+.photo-grid {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 3px; border-radius: var(--radius); overflow: hidden;
+}
+.photo-grid-item {
+  aspect-ratio: 1; position: relative; overflow: hidden;
+  background: var(--bg2); cursor: pointer;
+}
+.photo-grid-item img {
+  width: 100%; height: 100%; object-fit: cover;
+  display: block; transition: opacity 0.2s;
+}
+.photo-grid-item:active { opacity: 0.85; }
+.photo-grid-item .photo-del {
+  position: absolute; top: 4px; right: 4px;
+  background: rgba(0,0,0,0.55); color: #fff;
+  border: none; border-radius: 50%; width: 22px; height: 22px;
+  font-size: 12px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.2s;
+}
+.photo-grid-item:hover .photo-del,
+.photo-grid-item:active .photo-del { opacity: 1; }
+.photo-upload-bar {
+  height: 3px; background: var(--bg2); border-radius: 2px;
+  margin: 8px 0; overflow: hidden;
+}
+.photo-upload-bar .fill {
+  height: 100%; background: var(--or); width: 0;
+  transition: width 0.2s;
+}
+.photo-add-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--text); color: var(--bg2);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px; font-weight: 500;
+  padding: 8px 16px; border-radius: 100px;
+  border: none; cursor: pointer; transition: all 0.2s;
+}
+.photo-add-btn:active { opacity: 0.85; }
+.photo-empty {
+  text-align: center; padding: 24px 16px;
+  font-size: 13px; color: var(--text3);
+}
+.photo-lightbox {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.85); display: flex;
+  align-items: center; justify-content: center;
+  cursor: pointer;
+}
+.photo-lightbox img {
+  max-width: 92vw; max-height: 88vh;
+  border-radius: 8px; object-fit: contain;
+}
+
 /* ===== PLANNING ===== */
 
 /* En-tête léger avec titre + mois */
@@ -1304,14 +1360,11 @@ html, body {
     <div class="section-label">GN Privilège</div>
     <div class="loyalty-wrap" id="loyalty-wrap-home"></div>
 
-    <div class="section-label">Galerie <span style="font-size:9px;color:var(--text3);font-weight:300;letter-spacing:0;text-transform:none;">· Photos à venir</span></div>
-    <div class="gallery-grid">
-      <div class="gallery-item"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#BBA98A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3C9 3 7 5 7 9c0 3 1.5 5 5 5s5-2 5-5c0-4-2-6-2-6"/><path d="M7 9c0 5 2 10 5 12"/><path d="M17 9c0 5-2 10-5 12"/></svg></div>
-      <div class="gallery-item"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#BBA98A" stroke-width="1.2" stroke-linecap="round"><circle cx="12" cy="12" r="2.5"/><ellipse cx="12" cy="6.5" rx="2" ry="3" /><ellipse cx="12" cy="17.5" rx="2" ry="3"/><ellipse cx="6.5" cy="12" rx="3" ry="2"/><ellipse cx="17.5" cy="12" rx="3" ry="2"/><ellipse cx="8.2" cy="8.2" rx="2" ry="3" transform="rotate(-45 8.2 8.2)"/><ellipse cx="15.8" cy="15.8" rx="2" ry="3" transform="rotate(-45 15.8 15.8)"/><ellipse cx="15.8" cy="8.2" rx="2" ry="3" transform="rotate(45 15.8 8.2)"/><ellipse cx="8.2" cy="15.8" rx="2" ry="3" transform="rotate(45 8.2 15.8)"/></svg></div>
-      <div class="gallery-item"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#BBA98A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/><path d="M6 3l4 6m8-6l-4 6"/></svg></div>
-      <div class="gallery-item"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#BBA98A" stroke-width="1.2" stroke-linecap="round"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5z"/></svg></div>
-      <div class="gallery-item"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#BBA98A" stroke-width="1.2" stroke-linecap="round"><path d="M17 8C8 10 5.9 16.17 3.82 19.34L5.71 21C9 19 12.89 18.23 17 8z"/><path d="M17 8C17 8 20 12 20 17c0 3-2 5-2 5"/></svg></div>
-      <div class="gallery-item"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#BBA98A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg></div>
+    <div class="section-label">Inspirations <span style="font-size:9px;color:var(--text3);font-weight:300;letter-spacing:0;text-transform:none;">· Réalisations de Marion</span></div>
+    <div style="margin:0 16px;">
+      <div id="inspi-grid" class="photo-grid"></div>
+      <div id="inspi-empty" class="photo-empty" style="display:none;">Pas encore de photos.</div>
+      <div id="inspi-loading" style="text-align:center;padding:16px;font-size:12px;color:var(--text3);">Chargement…</div>
     </div>
   </div>
 
@@ -1717,7 +1770,16 @@ html, body {
       <div class="dash-eyebrow">Gestion</div>
       <div class="dash-title">Galerie</div>
     </div>
-    <div style="padding:24px 16px;font-size:13px;color:var(--text3);text-align:center;">Galerie photos bientôt disponible.</div>
+    <div style="padding:0 16px 24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--or);font-weight:500;">Photos réalisations</div>
+        <button class="photo-add-btn" onclick="document.getElementById('galerie-file-input').click()">+ Ajouter une photo</button>
+        <input type="file" id="galerie-file-input" accept="image/*" style="display:none;">
+      </div>
+      <div class="photo-upload-bar" id="galerie-upload-bar" style="display:none;"><div class="fill" id="galerie-upload-fill"></div></div>
+      <div id="galerie-grid" class="photo-grid"></div>
+      <div id="galerie-empty" class="photo-empty">Aucune photo pour le moment.</div>
+    </div>
   </div>
 
   <!-- ══ SCREEN: ACTUS ══ -->
@@ -1761,6 +1823,9 @@ import {
   getFirestore, collection, doc, addDoc, getDocs, getDoc, setDoc, deleteDoc,
   updateDoc, query, where, orderBy, onSnapshot, serverTimestamp, runTransaction
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB1R9I0KVkRNL7da3cOWUk9gIhqp0X0748",
@@ -1775,6 +1840,7 @@ const ADMIN_EMAIL = "glownails.contact31@gmail.com";
 const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
+const storage = getStorage(app);
 
 // ── Traduction erreurs Firebase ──────────────────────
 function fbErr(code) {
@@ -1802,6 +1868,8 @@ let currentUser  = null;   // Firebase User
 let userProfile  = null;   // doc Firestore users/{uid}
 let unsubRdvs    = null;   // listener RDV cliente
 let unsubDash    = null;   // listener dashboard Marion
+let galerieUnsubscribe = null;  // listener galerie admin
+let inspiUnsubscribe   = null;  // listener inspirations cliente
 
 // ── onAuthStateChanged — point d'entrée unique ───────
 onAuthStateChanged(auth, async (fbUser) => {
@@ -1935,6 +2003,8 @@ function stopListeners() {
   if (unsubRdvs) { unsubRdvs(); unsubRdvs = null; }
   if (unsubDash) { unsubDash(); unsubDash = null; }
   if (unsubPosts) { unsubPosts(); unsubPosts = null; }
+  if (galerieUnsubscribe) { galerieUnsubscribe(); galerieUnsubscribe = null; }
+  if (inspiUnsubscribe) { inspiUnsubscribe(); inspiUnsubscribe = null; }
 }
 
 function showLoginScreen() {
@@ -1956,6 +2026,7 @@ function enterCliente() {
   refreshLoyalty();
   startRdvsListener();
   startPostsListener();
+  initInspiCliente();
   selDay = new Date().getDate();
   selNAs = [];
   renderCal();
@@ -1972,6 +2043,7 @@ function enterMarion() {
   startDashListener();
   startPostsListener();
   loadDashClientes();
+  initGalerieAdmin();
 }
 
 // ── Dashboard nav tab switching ──
@@ -3571,6 +3643,9 @@ async function openFicheCliente(uid) {
     "<button id='btn-save-notes' data-uid='" + uid + "' style='margin-top:8px;background:var(--text);color:#fff;border:none;border-radius:100px;padding:6px 14px;font-size:11px;cursor:pointer;'>Sauvegarder</button>" +
   "</div>";
 
+  // Photos ongles
+  html += buildFichePhotosHTML(uid);
+
   contentEl.innerHTML = html;
 
   // Brancher les boutons
@@ -3585,6 +3660,8 @@ async function openFicheCliente(uid) {
   });
   const btnNotes = document.getElementById("btn-save-notes");
   if (btnNotes) btnNotes.addEventListener("click", () => saveNotes(btnNotes.dataset.uid));
+  // Init photos ongles pour cette fiche
+  initFichePhotos(uid);
 }
 
 // ── Annuler / Désistement RDV depuis fiche ──────────
@@ -3657,6 +3734,265 @@ async function saveNotes(uid) {
     await setDoc(doc(db, "notes_clientes", uid), { texte: textarea.value, ts: serverTimestamp() });
     showToast("✦ Notes sauvegardées !");
   } catch(e) { showToast("Erreur sauvegarde notes."); }
+}
+
+// ═══════════════════════════════════════════════════════
+//  FIREBASE STORAGE — Photos galerie + fiche cliente
+// ═══════════════════════════════════════════════════════
+
+// ── Compression image (max 1200px) ──────────────────
+function compressImage(file, maxSize) {
+  maxSize = maxSize || 1200;
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        let w = img.width, h = img.height;
+        if (w > maxSize || h > maxSize) {
+          if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+          else { w = Math.round(w * maxSize / h); h = maxSize; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w; canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        canvas.toBlob(function(blob) {
+          if (blob) resolve(blob);
+          else reject(new Error("Compression échouée"));
+        }, "image/jpeg", 0.82);
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── Upload avec barre de progression ────────────────
+function uploadPhoto(storagePath, file, barEl, fillEl) {
+  return new Promise((resolve, reject) => {
+    const storageRef = ref(storage, storagePath);
+    const task = uploadBytesResumable(storageRef, file);
+    if (barEl) barEl.style.display = "";
+    task.on("state_changed",
+      function(snap) {
+        const pct = (snap.bytesTransferred / snap.totalBytes) * 100;
+        if (fillEl) fillEl.style.width = pct + "%";
+      },
+      function(err) {
+        if (barEl) barEl.style.display = "none";
+        reject(err);
+      },
+      async function() {
+        if (barEl) barEl.style.display = "none";
+        if (fillEl) fillEl.style.width = "0";
+        const url = await getDownloadURL(task.snapshot.ref);
+        resolve({ url, path: storagePath });
+      }
+    );
+  });
+}
+
+// ── Lightbox ────────────────────────────────────────
+function openLightbox(url) {
+  const lb = document.createElement("div");
+  lb.className = "photo-lightbox";
+  lb.innerHTML = '<img src="' + url + '" alt="">';
+  lb.addEventListener("click", function() { lb.remove(); });
+  document.body.appendChild(lb);
+}
+
+// ═══════════════════════════════════════════
+//  1. GALERIE ADMIN — upload + affichage
+// ═══════════════════════════════════════════
+
+function initGalerieAdmin() {
+  const input = document.getElementById("galerie-file-input");
+  if (!input) return;
+  input.addEventListener("change", async function() {
+    const file = input.files[0];
+    if (!file) return;
+    input.value = "";
+    try {
+      showToast("Compression en cours…");
+      const compressed = await compressImage(file);
+      const ts = Date.now();
+      const path = "galerie/" + ts + "_" + file.name.replace(/[^a-zA-Z0-9._-]/g, "");
+      const bar = document.getElementById("galerie-upload-bar");
+      const fill = document.getElementById("galerie-upload-fill");
+      const result = await uploadPhoto(path, compressed, bar, fill);
+      await addDoc(collection(db, "galerie"), {
+        url: result.url, path: result.path,
+        nom: file.name, ts: serverTimestamp()
+      });
+      showToast("✦ Photo ajoutée !");
+    } catch(e) {
+      console.error("Upload galerie:", e);
+      showToast("Erreur upload photo.");
+    }
+  });
+
+  // Écouter la collection galerie en temps réel
+  const q = query(collection(db, "galerie"), orderBy("ts", "desc"));
+  galerieUnsubscribe = onSnapshot(q, function(snap) {
+    const photos = snap.docs.map(function(d) { return { id: d.id, ...d.data() }; });
+    renderGalerieAdmin(photos);
+    renderInspiCliente(photos);
+  });
+}
+
+function renderGalerieAdmin(photos) {
+  const grid = document.getElementById("galerie-grid");
+  const empty = document.getElementById("galerie-empty");
+  if (!grid) return;
+  if (!photos.length) {
+    grid.innerHTML = "";
+    if (empty) empty.style.display = "";
+    return;
+  }
+  if (empty) empty.style.display = "none";
+  grid.innerHTML = "";
+  photos.forEach(function(p) {
+    const div = document.createElement("div");
+    div.className = "photo-grid-item";
+    div.innerHTML = '<img src="' + p.url + '" alt="" loading="lazy">' +
+      '<button class="photo-del" data-id="' + p.id + '" data-path="' + (p.path||"") + '">&times;</button>';
+    div.querySelector("img").addEventListener("click", function() { openLightbox(p.url); });
+    div.querySelector(".photo-del").addEventListener("click", async function(e) {
+      e.stopPropagation();
+      if (!confirm("Supprimer cette photo ?")) return;
+      try {
+        await deleteDoc(doc(db, "galerie", p.id));
+        if (p.path) await deleteObject(ref(storage, p.path));
+        showToast("Photo supprimée.");
+      } catch(err) { showToast("Erreur suppression."); }
+    });
+    grid.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════
+//  2. INSPIRATIONS CLIENTE — lecture seule
+// ═══════════════════════════════════════════
+
+function initInspiCliente() {
+  if (inspiUnsubscribe) return;
+  const q = query(collection(db, "galerie"), orderBy("ts", "desc"));
+  inspiUnsubscribe = onSnapshot(q, function(snap) {
+    const photos = snap.docs.map(function(d) { return { id: d.id, ...d.data() }; });
+    renderInspiCliente(photos);
+  });
+}
+
+function renderInspiCliente(photos) {
+  const grid = document.getElementById("inspi-grid");
+  const empty = document.getElementById("inspi-empty");
+  const loading = document.getElementById("inspi-loading");
+  if (!grid) return;
+  if (loading) loading.style.display = "none";
+  if (!photos.length) {
+    grid.innerHTML = "";
+    if (empty) empty.style.display = "";
+    return;
+  }
+  if (empty) empty.style.display = "none";
+  grid.innerHTML = "";
+  photos.forEach(function(p) {
+    const div = document.createElement("div");
+    div.className = "photo-grid-item";
+    div.innerHTML = '<img src="' + p.url + '" alt="" loading="lazy">';
+    div.addEventListener("click", function() { openLightbox(p.url); });
+    grid.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════
+//  3. FICHE CLIENTE — photos ongles
+// ═══════════════════════════════════════════
+function buildFichePhotosHTML(uid) {
+  return "<div style='background:var(--white);border-radius:var(--radius);border:1px solid var(--border2);padding:16px;margin-bottom:12px;'>" +
+    "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;'>" +
+      "<div style='font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--or);'>Photos ongles</div>" +
+      "<button class='photo-add-btn' onclick=\"document.getElementById('fiche-photo-input').click()\">+ Photo</button>" +
+      "<input type='file' id='fiche-photo-input' accept='image/*' data-uid='" + uid + "' style='display:none;'>" +
+    "</div>" +
+    "<div class='photo-upload-bar' id='fiche-upload-bar' style='display:none;'><div class='fill' id='fiche-upload-fill'></div></div>" +
+    "<div id='fiche-photos-grid' class='photo-grid'></div>" +
+    "<div id='fiche-photos-empty' style='font-size:12px;color:var(--text3);'>Aucune photo.</div>" +
+  "</div>";
+}
+
+async function initFichePhotos(uid) {
+  const input = document.getElementById("fiche-photo-input");
+  if (!input) return;
+  input.addEventListener("change", async function() {
+    const file = input.files[0];
+    if (!file) return;
+    input.value = "";
+    try {
+      showToast("Compression en cours…");
+      const compressed = await compressImage(file);
+      const ts = Date.now();
+      const path = "clientes/" + uid + "/" + ts + "_" + file.name.replace(/[^a-zA-Z0-9._-]/g, "");
+      const bar = document.getElementById("fiche-upload-bar");
+      const fill = document.getElementById("fiche-upload-fill");
+      const result = await uploadPhoto(path, compressed, bar, fill);
+      // Ajouter la photo dans un sous-tableau Firestore
+      const clientRef = doc(db, "photos_clientes", uid);
+      const snap = await getDoc(clientRef);
+      const existing = snap.exists() ? (snap.data().photos || []) : [];
+      existing.unshift({ url: result.url, path: result.path, date: new Date().toISOString(), note: "" });
+      await setDoc(clientRef, { photos: existing, ts: serverTimestamp() });
+      showToast("✦ Photo ajoutée !");
+      renderFichePhotos(uid);
+    } catch(e) {
+      console.error("Upload fiche:", e);
+      showToast("Erreur upload photo.");
+    }
+  });
+  renderFichePhotos(uid);
+}
+
+async function renderFichePhotos(uid) {
+  const grid = document.getElementById("fiche-photos-grid");
+  const empty = document.getElementById("fiche-photos-empty");
+  if (!grid) return;
+  try {
+    const snap = await getDoc(doc(db, "photos_clientes", uid));
+    const photos = snap.exists() ? (snap.data().photos || []) : [];
+    if (!photos.length) {
+      grid.innerHTML = "";
+      if (empty) empty.style.display = "";
+      return;
+    }
+    if (empty) empty.style.display = "none";
+    grid.innerHTML = "";
+    photos.forEach(function(p, idx) {
+      const div = document.createElement("div");
+      div.className = "photo-grid-item";
+      div.innerHTML = '<img src="' + p.url + '" alt="" loading="lazy">' +
+        '<button class="photo-del">&times;</button>';
+      div.querySelector("img").addEventListener("click", function() { openLightbox(p.url); });
+      div.querySelector(".photo-del").addEventListener("click", async function(e) {
+        e.stopPropagation();
+        if (!confirm("Supprimer cette photo ?")) return;
+        try {
+          // Supprimer du Storage
+          if (p.path) await deleteObject(ref(storage, p.path));
+          // Supprimer de Firestore
+          const clientRef = doc(db, "photos_clientes", uid);
+          const s = await getDoc(clientRef);
+          const arr = s.exists() ? (s.data().photos || []) : [];
+          arr.splice(idx, 1);
+          await setDoc(clientRef, { photos: arr, ts: serverTimestamp() });
+          showToast("Photo supprimée.");
+          renderFichePhotos(uid);
+        } catch(err) { showToast("Erreur suppression."); }
+      });
+      grid.appendChild(div);
+    });
+  } catch(e) { console.error("renderFichePhotos:", e); }
 }
 
 // ── Charger clientes fidélité sur le tableau de bord ──
