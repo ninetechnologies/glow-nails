@@ -4835,20 +4835,23 @@ async function envoyerRappelsJMoins1() {
 
     for (const rdv of rdvs) {
       const email = rdv.email;
-      if (!email) { erreurs++; continue; }
+      if (!email) { console.warn("RDV sans email:", rdv); erreurs++; continue; }
+      const templateParams = {
+        to_email:    email,
+        to_name:     rdv.prenom || "Cliente",
+        date:        dateLisible,
+        heure:       rdv.heure,
+        prestation:  rdv.prestation || "Votre prestation",
+        salon_name:  "Glow Nails",
+        salon_phone: "glownails.contact31@gmail.com"
+      };
+      console.log("📧 Envoi rappel à:", JSON.stringify(templateParams));
       try {
-        await emailjs.send("service_p8pkbcd", "template_17mjjld", {
-          to_email:    email,
-          to_name:     rdv.prenom || "Cliente",
-          date:        dateLisible,
-          heure:       rdv.heure,
-          prestation:  rdv.prestation || "Votre prestation",
-          salon_name:  "Glow Nails",
-          salon_phone: "glownails.contact31@gmail.com"
-        });
+        const res = await emailjs.send("service_p8pkbcd", "template_17mjjld", templateParams);
+        console.log("📧 OK:", email, res.status, res.text);
         envoyes++;
       } catch(e) {
-        console.error("EmailJS erreur pour " + email + ":", e);
+        console.error("📧 ERREUR EmailJS pour " + email + ":", e.status, e.text, e);
         erreurs++;
       }
     }
