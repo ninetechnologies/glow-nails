@@ -547,6 +547,25 @@ html, body {
   max-width: 92vw; max-height: 88vh;
   border-radius: 8px; object-fit: contain;
 }
+/* ── RGPD ── */
+.rgpd-check { display:flex; align-items:flex-start; gap:10px; margin:8px 0 2px; }
+.rgpd-check input[type="checkbox"] { margin-top:3px; accent-color:var(--or); flex-shrink:0; width:16px; height:16px; cursor:pointer; }
+.rgpd-check label { font-size:12px; color:var(--text3); line-height:1.5; cursor:pointer; }
+.rgpd-check label a { color:var(--or); text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
+.rgpd-modal { position:fixed; inset:0; z-index:10000; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; padding:16px; }
+.rgpd-modal-box { background:var(--white); border-radius:var(--radius); max-width:500px; width:100%; max-height:80vh; overflow-y:auto; padding:28px 24px; position:relative; box-shadow:0 12px 40px rgba(0,0,0,0.25); }
+.rgpd-modal-box h2 { font-size:16px; font-weight:600; color:var(--text); margin:0 0 16px; }
+.rgpd-modal-box h3 { font-size:12px; font-weight:600; color:var(--or); text-transform:uppercase; letter-spacing:1px; margin:18px 0 6px; }
+.rgpd-modal-box p, .rgpd-modal-box li { font-size:13px; color:var(--text); line-height:1.65; }
+.rgpd-modal-box ul { padding-left:18px; margin:6px 0; }
+.rgpd-modal-close { position:absolute; top:12px; right:16px; background:none; border:none; font-size:22px; color:var(--text3); cursor:pointer; }
+.rgpd-banner { position:fixed; bottom:0; left:0; right:0; z-index:9000; background:var(--text); color:var(--bg2); padding:16px 20px; box-shadow:0 -4px 20px rgba(0,0,0,0.15); display:none; }
+.rgpd-banner p { font-size:12px; line-height:1.55; margin:0 0 12px; }
+.rgpd-banner-btns { display:flex; gap:8px; flex-wrap:wrap; }
+.rgpd-banner-btns button { padding:10px 18px; border-radius:100px; font-size:12px; font-family:'DM Sans',sans-serif; font-weight:500; cursor:pointer; border:none; }
+.rgpd-banner-accept { background:var(--or); color:#fff; }
+.rgpd-banner-refuse { background:transparent; color:var(--bg2); border:1px solid rgba(255,255,255,0.3) !important; }
+.rgpd-banner-link { background:none; color:var(--or-light); text-decoration:underline; font-size:11px !important; padding:6px 0 !important; }
 
 /* ===== PLANNING ===== */
 
@@ -1332,6 +1351,10 @@ html, body {
         <input class="form-field" type="email" id="reg-email" placeholder="Adresse email" autocomplete="email">
         <input class="form-field" type="password" id="reg-pwd" placeholder="Mot de passe (6 caractères min.)" autocomplete="new-password">
         <div class="form-error" id="reg-error"></div>
+        <div class="rgpd-check">
+          <input type="checkbox" id="reg-rgpd">
+          <label for="reg-rgpd">J'accepte la <a onclick="openRgpdModal('privacy');return false;">politique de confidentialité</a> et les <a onclick="openRgpdModal('cgu');return false;">CGU</a></label>
+        </div>
         <button class="btn-main" data-action="doRegister" style="margin-top:4px;">Créer mon compte</button>
       </div>
       <div class="switch-mode" style="margin-top:16px;">
@@ -1361,6 +1384,65 @@ html, body {
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- RGPD — Modal Politique de confidentialité -->
+<div class="rgpd-modal" id="rgpd-modal-privacy" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="rgpd-modal-box">
+    <button class="rgpd-modal-close" onclick="this.closest('.rgpd-modal').style.display='none'">&times;</button>
+    <h2>Politique de confidentialité</h2>
+    <h3>Responsable du traitement</h3>
+    <p>Marion Goarin – Glow Nails<br>Saint-Gaudens (31800)<br>Contact : glownails.contact31@gmail.com</p>
+    <h3>Données collectées</h3>
+    <ul>
+      <li>Prénom et nom</li>
+      <li>Adresse email</li>
+      <li>Historique des rendez-vous</li>
+      <li>Photos d'ongles (galerie cliente)</li>
+    </ul>
+    <h3>Finalité du traitement</h3>
+    <p>Gestion des rendez-vous, suivi clientèle et programme de fidélité.</p>
+    <h3>Base légale</h3>
+    <p>Consentement de la cliente (article 6.1.a du RGPD), recueilli lors de l'inscription.</p>
+    <h3>Durée de conservation</h3>
+    <p>Les données sont conservées 3 ans après le dernier rendez-vous. Passé ce délai, elles sont automatiquement supprimées.</p>
+    <h3>Vos droits</h3>
+    <p>Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, de suppression, de limitation et de portabilité de vos données. Pour exercer ces droits, contactez :</p>
+    <p><strong>glownails.contact31@gmail.com</strong></p>
+    <h3>Hébergement</h3>
+    <p>Les données sont hébergées par Google Firebase (serveurs UE). Politique de confidentialité Google : <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></p>
+  </div>
+</div>
+
+<!-- RGPD — Modal CGU -->
+<div class="rgpd-modal" id="rgpd-modal-cgu" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="rgpd-modal-box">
+    <button class="rgpd-modal-close" onclick="this.closest('.rgpd-modal').style.display='none'">&times;</button>
+    <h2>Conditions Générales d'Utilisation</h2>
+    <h3>Objet</h3>
+    <p>L'application Glow Nails permet aux clientes de prendre rendez-vous, consulter les inspirations et suivre leur historique auprès du salon Glow Nails.</p>
+    <h3>Accès au service</h3>
+    <p>L'inscription est gratuite et réservée aux personnes physiques. Un compte par adresse email. L'accès peut être restreint ou supprimé en cas d'abus.</p>
+    <h3>Rendez-vous</h3>
+    <p>Les rendez-vous pris via l'application sont soumis à confirmation par le salon. Toute annulation doit être effectuée au moins 24h à l'avance.</p>
+    <h3>Propriété intellectuelle</h3>
+    <p>L'ensemble du contenu (design, textes, photos) est la propriété de Glow Nails. Toute reproduction est interdite sans autorisation.</p>
+    <h3>Photos</h3>
+    <p>Les photos publiées dans la galerie d'inspirations restent la propriété de Glow Nails. Les photos de la fiche cliente sont privées et accessibles uniquement par la cliente et le salon.</p>
+    <h3>Responsabilité</h3>
+    <p>Glow Nails s'efforce d'assurer la disponibilité de l'application mais ne garantit pas un fonctionnement sans interruption.</p>
+    <h3>Contact</h3>
+    <p>Pour toute question : <strong>glownails.contact31@gmail.com</strong></p>
+  </div>
+</div>
+
+<!-- RGPD — Bandeau cookies -->
+<div class="rgpd-banner" id="rgpd-cookie-banner">
+  <p>Ce site utilise des cookies strictement nécessaires au fonctionnement de l'application (authentification, préférences). Aucun cookie publicitaire ou de tracking n'est utilisé. <a onclick="openRgpdModal('privacy')" style="color:var(--or-light);cursor:pointer;text-decoration:underline;">En savoir plus</a></p>
+  <div class="rgpd-banner-btns">
+    <button class="rgpd-banner-accept" onclick="acceptCookies()">Accepter</button>
+    <button class="rgpd-banner-refuse" onclick="refuseCookies()">Refuser les non-essentiels</button>
+  </div>
+</div>
 
 <!-- APP CLIENTE -->
 <div id="app" style="display:none;">
@@ -2048,12 +2130,18 @@ window.doRegister = async function() {
   const pwd   = document.getElementById("reg-pwd").value;
   if (!nom || !email || !pwd) { setErr("reg-error", "Remplissez tous les champs."); return; }
   if (pwd.length < 6)         { setErr("reg-error", "Mot de passe trop court (6 min.)."); return; }
+  const rgpdCheck = document.getElementById("reg-rgpd");
+  if (rgpdCheck && !rgpdCheck.checked) { showToast("Veuillez accepter la politique de confidentialité pour continuer."); return; }
   const btn = document.querySelector("#view-inscription .btn-main");
   if (btn) { btn.textContent = "Création…"; btn.disabled = true; }
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, pwd);
     await updateProfile(cred.user, { displayName: nom });
-    // onAuthStateChanged crée le profil Firestore et entre dans l'app
+    // Stocker le consentement RGPD dans le profil
+    await setDoc(doc(db, "users", cred.user.uid), {
+      rgpdConsent: true,
+      rgpdDate: new Date().toISOString()
+    }, { merge: true });
   } catch(e) {
     setErr("reg-error", fbErr(e.code));
   } finally {
@@ -2125,6 +2213,7 @@ async function enterCliente() {
   renderNA();
   updateSummary();
   refreshCal();
+  addRgpdFooterLinks();
 }
 
 function enterMarion() {
@@ -4694,6 +4783,50 @@ async function loadAllSettings() {
   if (emailEl && currentUser) emailEl.textContent = currentUser.email;
 }
 
+// ═══════════════════════════════════════════════════════
+//  RGPD — Consentement, Modales, Cookies
+// ═══════════════════════════════════════════════════════
+
+window.openRgpdModal = function(type) {
+  const id = type === "cgu" ? "rgpd-modal-cgu" : "rgpd-modal-privacy";
+  const modal = document.getElementById(id);
+  if (modal) modal.style.display = "";
+};
+
+window.acceptCookies = function() {
+  localStorage.setItem("gn_cookies", "accepted");
+  const banner = document.getElementById("rgpd-cookie-banner");
+  if (banner) banner.style.display = "none";
+};
+
+window.refuseCookies = function() {
+  localStorage.setItem("gn_cookies", "refused");
+  const banner = document.getElementById("rgpd-cookie-banner");
+  if (banner) banner.style.display = "none";
+};
+
+// Afficher le bandeau cookies si pas encore de choix
+function initCookieBanner() {
+  if (!localStorage.getItem("gn_cookies")) {
+    const banner = document.getElementById("rgpd-cookie-banner");
+    if (banner) banner.style.display = "";
+  }
+}
+
+// Lien "Politique de confidentialité" dans l'espace cliente
+function addRgpdFooterLinks() {
+  const app = document.getElementById("app");
+  if (!app) return;
+  const existing = document.getElementById("rgpd-footer");
+  if (existing) return;
+  const footer = document.createElement("div");
+  footer.id = "rgpd-footer";
+  footer.style.cssText = "text-align:center;padding:20px 16px 32px;font-size:11px;color:var(--text3);";
+  footer.innerHTML = '<a onclick="openRgpdModal(\'privacy\')" style="color:var(--or);cursor:pointer;text-decoration:underline;">Politique de confidentialité</a>' +
+    ' · <a onclick="openRgpdModal(\'cgu\')" style="color:var(--or);cursor:pointer;text-decoration:underline;">CGU</a>';
+  app.appendChild(footer);
+}
+
 // ── Brancher tous les boutons via addEventListener (module scope) ──
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -4745,6 +4878,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnPublier = document.getElementById("btn-publier-actu");
   if (btnPublier) btnPublier.addEventListener("click", () => window.publierActu());
   initActusPhoto();
+
+  // RGPD — bandeau cookies
+  initCookieBanner();
 
   // Réglages Marion
   const btnSaveSalon = document.getElementById("btn-save-salon");
