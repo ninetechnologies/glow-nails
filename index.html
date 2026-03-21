@@ -2102,14 +2102,19 @@ async function enterCliente() {
   document.getElementById("login-screen").style.display = "none";
   document.getElementById("app").style.display = "block";
   applyUser();
+
+  // ⚠️ Charger horaires + créneaux AVANT tout rendu calendrier
+  // sinon les onSnapshot (blocked, rdvs) déclenchent renderCal()
+  // alors que horairesData est encore vide → jours fermés ignorés
+  await Promise.all([loadSettingsHoraires(), loadSettingsCreneaux()]);
+  console.log("[HORAIRES] chargés pour cliente:", JSON.stringify(horairesData));
+
   refreshAccueil();
   refreshEspace();
   refreshLoyalty();
   startRdvsListener();
   startPostsListener();
   initInspiCliente();
-  // Charger horaires + créneaux dynamiques avant le rendu calendrier
-  await Promise.all([loadSettingsHoraires(), loadSettingsCreneaux()]);
   selDay = new Date().getDate();
   selNAs = [];
   renderCal();
@@ -3075,6 +3080,7 @@ function isDayOpenByHoraires(year, month, day) {
   let dow = d.getDay(); // 0=dim
   dow = dow === 0 ? 6 : dow - 1; // 0=lun … 6=dim
   const h = horairesData[dow];
+  console.log("[HORAIRES] jour=" + day + "/" + (month+1) + " dow=" + dow + " h=", h, "keys=", Object.keys(horairesData));
   if (!h) return { open: (dow < 6), debut: "09:00", fin: "18:00" }; // défaut si pas encore configuré
   if (!h.actif) return { open: false };
   return { open: true, debut: h.debut || "09:00", fin: h.fin || "18:00" };
