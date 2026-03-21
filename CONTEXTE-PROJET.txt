@@ -1,0 +1,221 @@
+================================================================================
+  GLOW NAILS — CONTEXTE PROJET & HISTORIQUE COMPLET
+  Dernière mise à jour : 2026-03-21
+================================================================================
+
+1. PRÉSENTATION
+================================================================================
+App web pour "Glow Nails", salon de prothésiste ongulaire à Saint-Gaudens (31800)
+tenu par Marion Goarin. Deux interfaces : cliente + dashboard admin Marion.
+
+- Architecture : SINGLE FILE (index.html, ~5070 lignes — HTML + CSS + JS)
+- Hébergement : Vercel (déploiement auto depuis GitHub)
+- Repo : github.com/ninetechnologies/glow-nails (branche main)
+- Admin email : glownails.contact31@gmail.com (constante ADMIN_EMAIL)
+
+
+2. STACK TECHNIQUE
+================================================================================
+- Firebase v10.12.2 (CDN gstatic) : Auth, Firestore, Storage
+- Firebase projet : glow-nails-app
+  - authDomain : glow-nails-app.firebaseapp.com
+  - storageBucket : glow-nails-app.firebasestorage.app
+  - appId : 1:789690603842:web:a90759e8bb7edf66bcd0db
+- EmailJS v4 (CDN jsdelivr)
+  - Public Key : AESnDmPUcL8RYYNqs
+  - Service ID : service_p8pkbcd
+  - Template rappel J-1 : template_17mjjld
+  - Template bienvenue : template_44nev54
+- Google Identity Services (OAuth popup pour Google Calendar)
+  - Client ID : 309066629365-3qfdg9ipgeonesd8eog1ou24ed83585p.apps.googleusercontent.com
+- Google Fonts : Cormorant Garamond (serif) + DM Sans (sans-serif)
+- PWA : manifest.json, site.webmanifest, service-worker.js (network-first)
+- Favicons : RealFaviconGenerator (SVG, PNG 96x96, ICO, apple-touch-icon)
+
+
+3. STRUCTURE DU FICHIER index.html
+================================================================================
+Lignes 1-30      : <head> meta SEO, OG, favicons, PWA
+Lignes 31-1318   : <style> — tout le CSS (~1290 lignes)
+Lignes 1319-1321 : Scripts externes (Google Sign-In, EmailJS init)
+Lignes 1323-1699 : HTML — App Cliente (login, 6 screens, bottom nav)
+Lignes 1702-1995 : HTML — Dashboard Marion (6 screens, nav responsive)
+Lignes 1997-5055 : <script type="module"> — tout le JS (~3060 lignes)
+Lignes 5058-5067 : Service Worker registration
+Lignes 5068-5069 : </body></html>
+
+
+4. COLLECTIONS FIRESTORE
+================================================================================
+users             : {uid, email, nom, prenom, depuis, stamps, rgpdConsent, rgpdDate, notes_marion}
+rdvs              : {uid, email, prenom, nom, annee, mois, jour, heure, prestation, prestas[], nailArts[], duree, prix, statut, ts}
+posts             : {texte, photo?, photoPath?, ts, likes[]}
+posts/{id}/comments : {texte, auteur, uid, ts}
+galerie           : {url, path, nom, ts}
+blocked           : doc ID = "YYYY-MM-DD" (existence = jour bloqué)
+slots             : {type, titre?, heure, annee, mois, jour, ts}
+settings/salon    : {nom, tel, adresse, insta}
+settings/horaires : {jours: {0: {actif, debut, fin}, ..., 6: {...}}}
+settings/creneaux : {liste: ["9h00", "10h00", ...]}
+notifications     : {uid, type, message, alternatives[], lu}
+listes            : docs "rouge" et "noire", chacun {emails: [...]}
+photos_clientes   : {uid, url, path, nom, ts}
+
+Firestore rules à configurer :
+  match /settings/{doc} {
+    allow read: if request.auth != null;
+    allow write: if request.auth.token.email == 'glownails.contact31@gmail.com';
+  }
+
+
+5. STORAGE FIREBASE — Dossiers
+================================================================================
+galerie/           : Photos réalisations Marion (inspirations)
+posts/             : Photos des publications actus
+photos_clientes/   : Photos ongles par cliente (fiche cliente)
+Compression : canvas resize max 1200px, JPEG qualité 0.82
+
+
+6. PRESTATIONS (catalogue JS hardcodé)
+================================================================================
+ID            | Label                      | Durée | Prix | Groupe
+gainage       | Gainage ongles naturels    | 90    | 35€  | pose
+rallonge      | Rallongement               | 105   | 45€  | pose
+remplissage   | Remplissage 3 à 4 sem      | 90    | 40€  | pose
+pedicure      | Pédicure                   | 105   | 40€  | extra
+depose        | Dépose complète            | 45    | 10€  | extra
+mainpied      | Main + pied                | 210   | 75€  | solo
+french        | French classique           | 15    | 8€   | finition
+frenchautre   | Autres french              | 25    | 10€  | finition
+babyboomer    | Baby boomer                | 15    | 10€  | finition
+
+Nail Art :
+na1 | NA n°1 | 15 min | 5€  | par doigt
+na2 | NA n°2 | 25 min | 10€ | par doigt
+na3 | NA n°3 | 35 min | 15€ | par doigt
+na4 | NA n°4 | 40 min | 20€ | par doigt
+
+Règles : pose = 1 seul, solo = rien d'autre, extra/finition = cumulables
+
+
+7. CHARTE GRAPHIQUE
+================================================================================
+Palette :
+  --bg: #F8F4EF (fond beige)     --or: #A8834A (doré)
+  --bg2: #EFE9E1                  --or-light: #C9A96E
+  --bg3: #E6DECE (heroes)         --or-ultra: #F0E4CC
+  --text: #1E140A (brun foncé)    --text2: #5A4535    --text3: #9A8270
+  Erreur: #B85450                 Google: #4285F4
+
+Dark mode forcé light (override avec !important)
+Border-radius : 12px (cartes) / 8px (petits) / 100px (boutons pill)
+
+
+8. FONCTIONNALITÉS CLIENTE
+================================================================================
+- Login / inscription (email+mdp) avec vérification liste noire/rouge
+- RGPD : checkbox consentement, modales confidentialité + CGU, bandeau cookies
+- Email de bienvenue automatique (EmailJS template_44nev54)
+- Accueil : hero, prochain RDV, carte fidélité GN Privilège (flip 3D), inspirations
+- Planning : calendrier mensuel, sélection prestas + NA par doigt + créneau → demande RDV
+- Espace cliente : profil, historique RDV, annulation, changement mdp
+- Tarifs : grille statique
+- Actus : fil de posts Marion (likes, commentaires temps réel)
+- FAQ : 5 questions accordéon
+- Notifications : RDV refusé/annulé/modifié avec alternatives
+
+
+9. FONCTIONNALITÉS MARION (DASHBOARD)
+================================================================================
+- Accueil : 4 stats, demandes en attente (confirmer/refuser), planning jour, rappels J-1
+- Planning : calendrier, RDV jour, événements agenda, bloquer/débloquer jour
+- Google Calendar : OAuth popup (GIS Token Model), sync lecture + écriture
+- Clientes : liste, fiche détaillée (infos, historique, photos, notes, fidélité)
+- Liste rouge (réservation impossible) / Liste noire (accès bloqué)
+- Galerie : upload/suppression photos réalisations (Storage)
+- Actus : publier post texte + photo, supprimer, feed avec stats
+- Rappels J-1 : EmailJS aux clientes avec RDV confirmé demain (template_17mjjld)
+- Réglages : infos salon, horaires (7 jours toggle), créneaux, compte Marion
+
+
+10. HISTORIQUE DES TRAVAUX (CHRONOLOGIQUE)
+================================================================================
+
+--- Phase 1 : Base ---
+- v9 : Firebase Auth + Firestore, login, inscription, RDV
+- Navigation dashboard multi-sections, topbar desktop + bottom nav mobile
+- Chargement dynamique clientes depuis Firestore
+- Carte GN Privilège avec flip recto/verso
+- Agenda Marion complet + sync temps réel
+- Optimisations planning (dates passées, limite 2 mois, conflits)
+- Intégration Google Calendar Marion (OAuth)
+- Fiche cliente complète (historique, annulation, libération créneaux)
+
+--- Phase 2 : Fonctionnalités avancées ---
+- Fix calendrier cliente vide (renderCal() sync)
+- Fix bouton connexion bloqué après erreur auth (finally + clear on input)
+- Debug erreurs RDV (slots + rdvs) — console.error détaillé
+- Fil d'actualités complet (cliente + Marion) — posts, likes, commentaires
+- Firebase Storage — galerie admin, inspirations cliente, photos fiche cliente
+- Debug upload Storage (galerie + fiche)
+- Upload photo dans les actus admin (bouton, preview, barre progression)
+
+--- Phase 3 : Réglages + Bugs horaires ---
+- Screen Réglages Marion — salon, horaires, créneaux, compte
+- Fix horaires non chargés avant renderCal() côté cliente
+  → enterCliente() : await loadSettingsHoraires() AVANT startRdvsListener()
+- Fix normalizeHoraires() — garantit 7 jours + overwrite net (pas de merge)
+- Debug logging exhaustif horaires (identifié permission-denied Firestore)
+  → Nécessite règle Firestore : settings/{doc} allow read if auth != null
+- Retrait logs de debug horaires
+
+--- Phase 4 : RGPD + Emails ---
+- Conformité RGPD : checkbox consentement, modales, bandeau cookies
+- Fix bandeau cookies invisible (display:block + localStorage safe Safari privé)
+- Rappels RDV J-1 via EmailJS (template_17mjjld) dans dashboard Marion
+- Debug EmailJS (logs templateParams + status/text)
+- Email de bienvenue automatique inscription (template_44nev54)
+- Fix template ID bienvenue → template_44nev54
+
+--- Phase 5 : PWA + Finitions ---
+- PWA : manifest.json, service-worker.js (network-first), icônes SVG, meta tags
+- Favicons RealFaviconGenerator : SVG, PNG, ICO, apple-touch-icon, site.webmanifest
+- Mise à jour manifest.json icons vers PNG RealFaviconGenerator
+- Mise à jour durées et tarifs prestations (catalogue JS)
+- Remplacement Google OAuth Client ID → 309066629365-3qfdg9ipgeonesd8eog1ou24ed83585p
+
+
+11. BUGS CONNUS / POINTS D'ATTENTION
+================================================================================
+- Firestore rules pour settings : DOIT être configuré dans Firebase Console
+  (sinon les clientes ne voient pas les horaires → tous les jours ouverts)
+- Les anciens icon-192.svg / icon-512.svg ne sont plus référencés (supprimables)
+- Google Calendar : le Client ID doit avoir les "Authorized JavaScript origins"
+  configurées dans Google Cloud Console (URL Vercel du site)
+- EmailJS : si erreur "1 erreur" sur rappels, vérifier le template dans le dashboard EmailJS
+- Upload photos : si "Compression en cours…" puis rien → vérifier CORS/rules Storage
+- La grille tarifaire HTML (screen Tarifs) est statique et doit être mise à jour
+  manuellement si les prix changent (indépendante du catalogue JS PRESTAS)
+
+
+12. VARIABLES JS GLOBALES IMPORTANTES
+================================================================================
+currentUser       : Firebase User authentifié
+userProfile       : doc Firestore users/{uid}
+rdvsCache         : Array RDV cliente (onSnapshot temps réel)
+horairesData      : Object {0..6} horaires d'ouverture
+creneauxData      : Array créneaux horaires
+blockedDaysCache  : Object jours bloqués {id: true}
+selPrestas        : Array prestations sélectionnées
+selNAs            : Array nail arts sélectionnés avec doigts
+selCr             : String créneau sélectionné
+selDay/selMonth/selYear : Number date sélectionnée
+gcalToken         : String token OAuth Google Calendar (session only)
+ADMIN_EMAIL       : "glownails.contact31@gmail.com"
+PRESTAS           : Array catalogue prestations
+NA_OPTIONS        : Array options nail art
+TARIFS            : Object label→prix (compat dashboard)
+
+================================================================================
+  FIN DU DOCUMENT
+================================================================================

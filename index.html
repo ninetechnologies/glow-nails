@@ -49,6 +49,7 @@
   --shadow2: 0 8px 32px rgba(30,20,10,0.10);
   --radius: 12px;
   --radius-sm: 8px;
+  --erreur: #B85450;
 }
 
 html, body {
@@ -2010,6 +2011,9 @@ import {
 import {
   getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import {
+  getFunctions, httpsCallable
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB1R9I0KVkRNL7da3cOWUk9gIhqp0X0748",
@@ -2025,6 +2029,7 @@ const app  = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
 const storage = getStorage(app);
+const firebaseFunctions = getFunctions(app);
 
 // ── Traduction erreurs Firebase ──────────────────────
 function fbErr(code) {
@@ -3877,6 +3882,16 @@ async function openFicheCliente(uid) {
   // Photos ongles
   html += buildFichePhotosHTML(uid);
 
+  // Zone suppression compte
+  html += "<div style='margin-top:24px;padding-top:16px;border-top:2px solid var(--border2);'>" +
+    "<button id='btn-delete-cliente' data-uid='" + uid + "' data-nom='" + (c.prenom + " " + c.nom).replace(/'/g,"&#39;") + "' " +
+    "style='width:100%;padding:10px 16px;background:transparent;color:var(--erreur);border:1.5px solid var(--erreur);border-radius:100px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:0.5px;' " +
+    "onmouseover=\"this.style.background='var(--erreur)';this.style.color='#fff';\" " +
+    "onmouseout=\"this.style.background='transparent';this.style.color='var(--erreur)';\">" +
+    "Supprimer le compte" +
+    "</button>" +
+  "</div>";
+
   contentEl.innerHTML = html;
 
   // Brancher les boutons
@@ -3893,6 +3908,45 @@ async function openFicheCliente(uid) {
   if (btnNotes) btnNotes.addEventListener("click", () => saveNotes(btnNotes.dataset.uid));
   // Init photos ongles pour cette fiche
   initFichePhotos(uid);
+
+  // Bouton supprimer compte
+  const btnDel = document.getElementById("btn-delete-cliente");
+  if (btnDel) btnDel.addEventListener("click", () => handleDeleteCliente(btnDel.dataset.uid, btnDel.dataset.nom));
+}
+
+// ── Supprimer compte cliente ────────────────────────
+async function handleDeleteCliente(uid, nomComplet) {
+  if (!confirm("⚠️ Supprimer définitivement le compte de " + nomComplet + " ?\n\nCette action supprimera :\n• Tous ses rendez-vous\n• Sa fiche cliente\n• Son compte de connexion\n\nCette action est irréversible.")) return;
+
+  const btn = document.getElementById("btn-delete-cliente");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Suppression en cours…";
+    btn.style.opacity = "0.6";
+  }
+
+  try {
+    const deleteUserFn = httpsCallable(firebaseFunctions, "deleteUser");
+    await deleteUserFn({ uid });
+
+    alert("Le compte de " + nomComplet + " a été supprimé.");
+
+    // Fermer la fiche et rafraîchir la liste
+    const fiche = document.getElementById("fiche-cliente");
+    const list = document.getElementById("clientes-list");
+    if (fiche) fiche.style.display = "none";
+    if (list) list.style.display = "";
+    loadClientes();
+  } catch (e) {
+    console.error("Erreur suppression compte:", e);
+    const msg = e.message || "Une erreur est survenue lors de la suppression.";
+    alert("Erreur : " + msg);
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Supprimer le compte";
+      btn.style.opacity = "1";
+    }
+  }
 }
 
 // ── Annuler / Désistement RDV depuis fiche ──────────
