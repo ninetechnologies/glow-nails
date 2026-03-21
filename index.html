@@ -2352,15 +2352,15 @@ function getProchainRdv() {
 // ── Confirmer RDV ────────────────────────────────────
 // ── Catalogue prestations ─────────────────────────────
 const PRESTAS = [
-  { id:"gainage",    label:"Gainage ongles naturels", duree:60,  prix:35, groupe:"pose" },
-  { id:"rallonge",   label:"Rallongement gel",         duree:150, prix:45, groupe:"pose" },
-  { id:"remplissage",label:"Remplissage 3 à 4 sem.",   duree:90,  prix:40, groupe:"pose" },
-  { id:"pedicure",   label:"Pédicure",                 duree:60,  prix:40, groupe:"extra" },
+  { id:"gainage",    label:"Gainage ongles naturels", duree:90,  prix:35, groupe:"pose" },
+  { id:"rallonge",   label:"Rallongement",             duree:105, prix:45, groupe:"pose" },
+  { id:"remplissage",label:"Remplissage 3 à 4 sem",   duree:90,  prix:40, groupe:"pose" },
+  { id:"pedicure",   label:"Pédicure",                 duree:105, prix:40, groupe:"extra" },
   { id:"depose",     label:"Dépose complète",           duree:45,  prix:10, groupe:"extra" },
-  { id:"mainpied",   label:"Main + Pied",               duree:120, prix:75, groupe:"solo" },
-  { id:"french",     label:"French classique",          duree:75,  prix:8,  groupe:"finition" },
-  { id:"frenchautre",label:"Autres french",             duree:75,  prix:10, groupe:"finition" },
-  { id:"babyboomer", label:"Baby boomer",               duree:90,  prix:10, groupe:"finition" },
+  { id:"mainpied",   label:"Main + pied",               duree:210, prix:75, groupe:"solo" },
+  { id:"french",     label:"French classique",          duree:15,  prix:8,  groupe:"finition" },
+  { id:"frenchautre",label:"Autres french",             duree:25,  prix:10, groupe:"finition" },
+  { id:"babyboomer", label:"Baby boomer",               duree:15,  prix:10, groupe:"finition" },
 ];
 
 // Règles de compatibilité
@@ -2386,10 +2386,10 @@ function getCompatibles(selection) {
 }
 
 const NA_OPTIONS = [
-  { id:"na1", label:"Nail Art niveau 1 — Basique",         duree:15, prix:5,  parDoigt:true },
-  { id:"na2", label:"Nail Art niveau 2 — Intermédiaire",   duree:25, prix:10, parDoigt:true },
-  { id:"na3", label:"Nail Art niveau 3 — Élaboré",         duree:35, prix:15, parDoigt:true },
-  { id:"na4", label:"Nail Art niveau 4 — Premium",         duree:45, prix:20, parDoigt:true },
+  { id:"na1", label:"NA n°1",   duree:15, prix:5,  parDoigt:true },
+  { id:"na2", label:"NA n°2",   duree:25, prix:10, parDoigt:true },
+  { id:"na3", label:"NA n°3",   duree:35, prix:15, parDoigt:true },
+  { id:"na4", label:"NA n°4",   duree:40, prix:20, parDoigt:true },
 ];
 
 // Compat : TARIFS gardé pour le dashboard Marion (affichage historique)
