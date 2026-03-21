@@ -1306,6 +1306,8 @@ html, body {
 .feed-stats { font-size:11px; color:var(--text3); padding:0 16px 6px; }
 </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script type="text/javascript">emailjs.init("AESnDmPUcL8RYYNqs");</script>
 </head>
 <body>
 
@@ -1746,6 +1748,14 @@ html, body {
 
   <div class="section-label" id="dash-date-label">Planning · chargement…</div>
     <div id="dash-planning-list"><div style="padding:12px 16px;font-size:13px;color:var(--text3);">Chargement…</div></div>
+
+    <!-- Rappels J-1 -->
+    <div style="margin:16px 16px 0;display:flex;gap:8px;align-items:center;">
+      <button id="btn-rappels-j1" style="flex:1;background:none;border:1px solid var(--border2);border-radius:100px;padding:12px 16px;font-size:12px;cursor:pointer;color:var(--text);font-family:'DM Sans',sans-serif;font-weight:400;display:flex;align-items:center;justify-content:center;gap:6px;">
+        <span style="font-size:15px;">📧</span> Envoyer rappels J-1
+      </button>
+    </div>
+    <div id="rappels-result" style="margin:8px 16px 0;font-size:11px;color:var(--text3);display:none;"></div>
 
     <div class="section-label" style="margin-top:8px;">Clientes · Fidélité</div>
     <div id="dash-clientes-fidelite"><div style="padding:8px 0;font-size:13px;color:var(--text3);">Chargement…</div></div>
@@ -4784,6 +4794,80 @@ async function loadAllSettings() {
 }
 
 // ═══════════════════════════════════════════════════════
+//  RAPPELS RDV J-1 — EmailJS
+// ═══════════════════════════════════════════════════════
+
+async function envoyerRappelsJMoins1() {
+  const btn = document.getElementById("btn-rappels-j1");
+  const resultEl = document.getElementById("rappels-result");
+  if (btn) { btn.disabled = true; btn.style.opacity = "0.5"; }
+  if (resultEl) { resultEl.style.display = ""; resultEl.textContent = "Recherche des RDV de demain…"; }
+
+  try {
+    // Date de demain
+    const demain = new Date();
+    demain.setDate(demain.getDate() + 1);
+    const dJour = demain.getDate();
+    const dMois = demain.getMonth();
+    const dAnnee = demain.getFullYear();
+    const joursNom = ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
+    const moisNom = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+    const dateLisible = joursNom[demain.getDay()].charAt(0).toUpperCase() + joursNom[demain.getDay()].slice(1) + " " + dJour + " " + moisNom[dMois] + " " + dAnnee;
+
+    // Chercher les RDV confirmés de demain
+    const q = query(
+      collection(db, "rdvs"),
+      where("statut", "==", "confirme"),
+      where("jour", "==", dJour),
+      where("mois", "==", dMois),
+      where("annee", "==", dAnnee)
+    );
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
+      if (resultEl) resultEl.textContent = "Aucun RDV confirmé pour demain (" + dateLisible + ").";
+      return;
+    }
+
+    const rdvs = snap.docs.map(d => d.data());
+    let envoyes = 0;
+    let erreurs = 0;
+
+    for (const rdv of rdvs) {
+      const email = rdv.email;
+      if (!email) { erreurs++; continue; }
+      try {
+        await emailjs.send("service_p8pkbcd", "template_17mjjld", {
+          to_email:    email,
+          to_name:     rdv.prenom || "Cliente",
+          date:        dateLisible,
+          heure:       rdv.heure,
+          prestation:  rdv.prestation || "Votre prestation",
+          salon_name:  "Glow Nails",
+          salon_phone: "glownails.contact31@gmail.com"
+        });
+        envoyes++;
+      } catch(e) {
+        console.error("EmailJS erreur pour " + email + ":", e);
+        erreurs++;
+      }
+    }
+
+    let msg = "✦ " + envoyes + " rappel" + (envoyes > 1 ? "s" : "") + " envoyé" + (envoyes > 1 ? "s" : "") + " pour " + dateLisible;
+    if (erreurs) msg += " (" + erreurs + " erreur" + (erreurs > 1 ? "s" : "") + ")";
+    if (resultEl) resultEl.textContent = msg;
+    showToast(msg);
+
+  } catch(e) {
+    console.error("envoyerRappelsJMoins1:", e);
+    if (resultEl) resultEl.textContent = "Erreur : " + (e.message || e);
+    showToast("Erreur lors de l'envoi des rappels.");
+  } finally {
+    if (btn) { btn.disabled = false; btn.style.opacity = "1"; }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 //  RGPD — Consentement, Modales, Cookies
 // ═══════════════════════════════════════════════════════
 
@@ -4888,6 +4972,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnPublier = document.getElementById("btn-publier-actu");
   if (btnPublier) btnPublier.addEventListener("click", () => window.publierActu());
   initActusPhoto();
+
+  // Rappels J-1
+  const btnRappels = document.getElementById("btn-rappels-j1");
+  if (btnRappels) btnRappels.addEventListener("click", envoyerRappelsJMoins1);
 
   // RGPD — bandeau cookies
   initCookieBanner();
