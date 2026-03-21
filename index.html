@@ -3781,6 +3781,7 @@ function uploadPhoto(storagePath, file, barEl, fillEl) {
         if (fillEl) fillEl.style.width = pct + "%";
       },
       function(err) {
+        console.error("❌ Storage upload échoué:", err.code, err.message, err.serverResponse || "");
         if (barEl) barEl.style.display = "none";
         reject(err);
       },
@@ -3828,8 +3829,8 @@ function initGalerieAdmin() {
       });
       showToast("✦ Photo ajoutée !");
     } catch(e) {
-      console.error("Upload galerie:", e);
-      showToast("Erreur upload photo.");
+      console.error("❌ Upload galerie ERREUR:", e.code || "", e.message || e, e);
+      showToast("Erreur upload : " + (e.code || e.message || "voir console F12"));
     }
   });
 
@@ -3947,8 +3948,8 @@ async function initFichePhotos(uid) {
       showToast("✦ Photo ajoutée !");
       renderFichePhotos(uid);
     } catch(e) {
-      console.error("Upload fiche:", e);
-      showToast("Erreur upload photo.");
+      console.error("❌ Upload fiche ERREUR:", e.code || "", e.message || e, e);
+      showToast("Erreur upload : " + (e.code || e.message || "voir console F12"));
     }
   });
   renderFichePhotos(uid);
