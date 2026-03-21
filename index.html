@@ -1248,9 +1248,14 @@ html, body {
 .actus-publish textarea { width:100%; min-height:80px; border:1px solid var(--border2); border-radius:8px; padding:10px 12px; font-size:13px; font-family:'DM Sans',sans-serif; resize:vertical; outline:none; }
 .actus-publish textarea:focus { border-color:var(--or-light); }
 .actus-publish-row { display:flex; gap:8px; margin-top:10px; align-items:center; }
-.actus-publish-row input { flex:1; border:1px solid var(--border2); border-radius:6px; padding:8px 10px; font-size:11px; font-family:'DM Sans',sans-serif; outline:none; }
-.actus-publish-row input:focus { border-color:var(--or-light); }
 .actus-publish-btn { background:var(--text); color:#fff; border:none; border-radius:100px; padding:10px 20px; font-size:12px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; }
+.actus-photo-btn { background:none; border:1px solid var(--border2); border-radius:100px; padding:7px 14px; font-size:12px; cursor:pointer; color:var(--text3); font-family:'DM Sans',sans-serif; transition:border-color 0.2s,color 0.2s; }
+.actus-photo-btn:hover { border-color:var(--or-light); color:var(--text); }
+.actus-photo-preview { position:relative; display:inline-block; margin-top:10px; }
+.actus-photo-preview img { width:120px; height:90px; object-fit:cover; border-radius:8px; border:1px solid var(--border2); }
+.actus-photo-preview .remove { position:absolute; top:-6px; right:-6px; width:22px; height:22px; background:var(--text); color:#fff; border:2px solid var(--white); border-radius:50%; font-size:12px; line-height:18px; text-align:center; cursor:pointer; }
+.actus-upload-bar { height:3px; background:var(--border2); border-radius:3px; margin-top:8px; display:none; overflow:hidden; }
+.actus-upload-bar .fill { height:100%; background:var(--or); width:0; transition:width 0.2s; border-radius:3px; }
 .feed-post-header-marion { display:flex; justify-content:space-between; align-items:center; padding:12px 16px 0; }
 .feed-delete-btn { background:none; border:none; cursor:pointer; font-size:16px; opacity:0.5; transition:opacity 0.2s; }
 .feed-delete-btn:hover { opacity:1; }
@@ -1790,8 +1795,11 @@ html, body {
     </div>
     <div class="actus-publish">
       <textarea id="actus-texte" placeholder="Écrire une publication..."></textarea>
+      <input type="file" id="actus-photo-file" accept="image/*" style="display:none">
+      <div id="actus-photo-preview" class="actus-photo-preview" style="display:none"></div>
+      <div class="actus-upload-bar" id="actus-upload-bar"><div class="fill" id="actus-upload-fill"></div></div>
       <div class="actus-publish-row">
-        <input type="text" id="actus-photo" placeholder="URL de la photo (optionnel)">
+        <button type="button" class="actus-photo-btn" id="btn-actus-photo">📷 Photo</button>
         <button class="actus-publish-btn" id="btn-publier-actu">Publier</button>
       </div>
     </div>
@@ -4166,6 +4174,11 @@ function renderFeedCliente() {
     div.innerHTML = html;
     container.appendChild(div);
 
+    // Lightbox on feed image
+    const feedImg = div.querySelector(".feed-post-img");
+    if (feedImg) feedImg.style.cursor = "pointer";
+    if (feedImg) feedImg.addEventListener("click", () => openLightbox(post.photoUrl));
+
     // Load comments for this post
     loadComments(post.id, div.querySelector(".feed-comments-list"));
   });
@@ -4288,30 +4301,70 @@ async function sendComment(postId) {
   }
 }
 
+// ── Photo preview pour actus ──
+let actusPendingFile = null;
+
+function initActusPhoto() {
+  const fileInput = document.getElementById("actus-photo-file");
+  const btnPhoto = document.getElementById("btn-actus-photo");
+  const previewEl = document.getElementById("actus-photo-preview");
+  if (!fileInput || !btnPhoto) return;
+
+  btnPhoto.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    actusPendingFile = file;
+    const url = URL.createObjectURL(file);
+    previewEl.innerHTML = '<img src="' + url + '" alt="preview"><div class="remove" id="actus-photo-remove">&times;</div>';
+    previewEl.style.display = "";
+    previewEl.querySelector("#actus-photo-remove").addEventListener("click", clearActusPhoto);
+  });
+}
+
+function clearActusPhoto() {
+  actusPendingFile = null;
+  const fileInput = document.getElementById("actus-photo-file");
+  const previewEl = document.getElementById("actus-photo-preview");
+  if (fileInput) fileInput.value = "";
+  if (previewEl) { previewEl.innerHTML = ""; previewEl.style.display = "none"; }
+}
+
 // ── Publier un post (Marion) ──
 window.publierActu = async function() {
   const texteEl = document.getElementById("actus-texte");
-  const photoEl = document.getElementById("actus-photo");
   const texte = (texteEl?.value || "").trim();
-  const photoUrl = (photoEl?.value || "").trim();
-  if (!texte) { showToast("Écrivez un texte pour publier."); return; }
+  if (!texte && !actusPendingFile) { showToast("Écrivez un texte ou ajoutez une photo."); return; }
   const btn = document.getElementById("btn-publier-actu");
   if (btn) { btn.textContent = "Publication…"; btn.disabled = true; }
   try {
+    let photoUrl = "";
+    let photoPath = "";
+    if (actusPendingFile) {
+      showToast("Compression en cours…");
+      const compressed = await compressImage(actusPendingFile);
+      const ts = Date.now();
+      const safeName = actusPendingFile.name.replace(/[^a-zA-Z0-9._-]/g, "");
+      photoPath = "posts/" + ts + "_" + safeName;
+      const bar = document.getElementById("actus-upload-bar");
+      const fill = document.getElementById("actus-upload-fill");
+      const result = await uploadPhoto(photoPath, compressed, bar, fill);
+      photoUrl = result.url;
+    }
     const data = {
       texte,
       auteur: "Marion",
       likes: [],
       date: serverTimestamp()
     };
-    if (photoUrl) data.photoUrl = photoUrl;
+    if (photoUrl) { data.photoUrl = photoUrl; data.photoPath = photoPath; }
     await addDoc(collection(db, "posts"), data);
     if (texteEl) texteEl.value = "";
-    if (photoEl) photoEl.value = "";
+    clearActusPhoto();
     showToast("✦ Publication envoyée !");
   } catch(e) {
-    console.error("[ACTUS] Erreur publication:", e);
-    showToast("Erreur lors de la publication.");
+    console.error("❌ [ACTUS] Erreur publication:", e.code || "", e.message || e, e);
+    showToast("Erreur : " + (e.code || e.message || "voir console F12"));
   } finally {
     if (btn) { btn.textContent = "Publier"; btn.disabled = false; }
   }
@@ -4321,6 +4374,11 @@ window.publierActu = async function() {
 window.deletePost = async function(postId) {
   if (!confirm("Supprimer cette publication ?")) return;
   try {
+    // Supprimer la photo du Storage si elle existe
+    const postSnap = await getDoc(doc(db, "posts", postId));
+    if (postSnap.exists() && postSnap.data().photoPath) {
+      try { await deleteObject(ref(storage, postSnap.data().photoPath)); } catch(e) { /* ignore */ }
+    }
     await deleteDoc(doc(db, "posts", postId));
     showToast("Publication supprimée.");
   } catch(e) {
@@ -4359,6 +4417,11 @@ function renderFeedMarion() {
 
     div.innerHTML = html;
     container.appendChild(div);
+
+    // Lightbox on feed image
+    const feedImg = div.querySelector(".feed-post-img");
+    if (feedImg) feedImg.style.cursor = "pointer";
+    if (feedImg) feedImg.addEventListener("click", () => openLightbox(post.photoUrl));
 
     // Load comments
     loadComments(post.id, div.querySelector(".feed-comments-list"));
@@ -4420,6 +4483,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Bouton publier actus Marion
   const btnPublier = document.getElementById("btn-publier-actu");
   if (btnPublier) btnPublier.addEventListener("click", () => window.publierActu());
+  initActusPhoto();
 
   // Fiche cliente : retour à la liste
   const ficheBack = document.getElementById("fiche-back");
