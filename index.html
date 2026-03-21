@@ -2104,10 +2104,13 @@ async function enterCliente() {
   applyUser();
 
   // ⚠️ Charger horaires + créneaux AVANT tout rendu calendrier
-  // sinon les onSnapshot (blocked, rdvs) déclenchent renderCal()
-  // alors que horairesData est encore vide → jours fermés ignorés
-  await Promise.all([loadSettingsHoraires(), loadSettingsCreneaux()]);
-  console.log("[HORAIRES] chargés pour cliente:", JSON.stringify(horairesData));
+  try {
+    await Promise.all([loadSettingsHoraires(), loadSettingsCreneaux()]);
+  } catch(e) {
+    console.error("[HORAIRES] ❌ Chargement settings échoué:", e);
+    normalizeHoraires(); // Garantir des défauts même en cas d'erreur
+  }
+  console.log("[HORAIRES] état final pour cliente:", JSON.stringify(horairesData));
 
   refreshAccueil();
   refreshEspace();
@@ -3072,13 +3075,18 @@ function isPastSlot(heure){
   return now.getHours()>h || (now.getHours()===h && now.getMinutes()>=m);
 }
 
+let _horairesLogCount = 0;
 function isDayOpenByHoraires(year, month, day) {
   const d = new Date(year, month, day);
-  let dow = d.getDay(); // 0=dim
-  dow = dow === 0 ? 6 : dow - 1; // 0=lun … 6=dim
+  let dow = d.getDay(); // 0=dim, 1=lun, ..., 6=sam
+  dow = dow === 0 ? 6 : dow - 1; // → 0=lun, 1=mar, ..., 5=sam, 6=dim
   const h = horairesData[dow];
-  // Debug temporaire — à retirer après validation
-  if (day === 1) console.log("[HORAIRES] mois " + (month+1) + " keys:", Object.keys(horairesData), "dow0=", horairesData[0]);
+  // Debug temporaire — log les 7 premiers appels (1 par jour de la semaine)
+  if (_horairesLogCount < 7) {
+    _horairesLogCount++;
+    console.log("[HORAIRES] jour=" + day + "/" + (month+1) + " getDay=" + d.getDay() + " → dow=" + dow +
+      " h=", JSON.stringify(h), " → open=" + (h ? h.actif : "(fallback:" + (dow < 6) + ")"));
+  }
   // Si horairesData pas encore chargé → défaut ouvert Lun-Sam
   if (!h) return { open: (dow < 6), debut: "09:00", fin: "18:00" };
   if (!h.actif) return { open: false };
@@ -4632,11 +4640,17 @@ async function loadSettingsHoraires() {
   try {
     const snap = await getDoc(doc(db, "settings", "horaires"));
     if (snap.exists() && snap.data().jours) {
-      horairesData = snap.data().jours;
+      const raw = snap.data().jours;
+      console.log("[HORAIRES] Firestore brut:", JSON.stringify(raw));
+      horairesData = raw;
+    } else {
+      console.log("[HORAIRES] Aucun doc settings/horaires → défauts");
     }
-  } catch(e) { console.error("loadSettingsHoraires:", e); }
+  } catch(e) {
+    console.error("[HORAIRES] ❌ Lecture Firestore ÉCHOUÉE:", e.code || "", e.message || e);
+  }
   normalizeHoraires();
-  console.log("[HORAIRES] loaded:", JSON.stringify(horairesData));
+  console.log("[HORAIRES] après normalize:", JSON.stringify(horairesData));
   renderHorairesGrid();
 }
 
