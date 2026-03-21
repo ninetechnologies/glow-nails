@@ -1256,6 +1256,31 @@ html, body {
 .actus-photo-preview .remove { position:absolute; top:-6px; right:-6px; width:22px; height:22px; background:var(--text); color:#fff; border:2px solid var(--white); border-radius:50%; font-size:12px; line-height:18px; text-align:center; cursor:pointer; }
 .actus-upload-bar { height:3px; background:var(--border2); border-radius:3px; margin-top:8px; display:none; overflow:hidden; }
 .actus-upload-bar .fill { height:100%; background:var(--or); width:0; transition:width 0.2s; border-radius:3px; }
+/* ── Settings screen ── */
+.settings-card { margin:0 16px 16px; background:var(--white); border-radius:var(--radius); border:1px solid var(--border2); box-shadow:var(--shadow); padding:18px 16px; }
+.settings-card-title { font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--or); margin-bottom:14px; font-weight:600; }
+.settings-card-sub { font-size:11px; color:var(--text3); line-height:1.5; margin:-8px 0 14px; }
+.settings-label { display:block; font-size:11px; color:var(--text3); margin-bottom:12px; }
+.settings-label .settings-input { margin-top:4px; }
+.settings-input { width:100%; padding:10px 12px; border:1px solid var(--border2); border-radius:8px; font-size:13px; font-family:'DM Sans',sans-serif; color:var(--text); outline:none; box-sizing:border-box; background:var(--bg); }
+.settings-input:focus { border-color:var(--or-light); }
+.settings-save-btn { width:100%; margin-top:14px; padding:12px; border-radius:100px; background:var(--text); color:#fff; border:none; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500; cursor:pointer; }
+.settings-outline-btn { width:100%; padding:12px; border-radius:100px; background:none; border:1px solid var(--border2); color:var(--text); font-family:'DM Sans',sans-serif; font-size:13px; cursor:pointer; margin-bottom:8px; }
+.settings-outline-btn:last-child { margin-bottom:0; }
+.settings-logout-btn { color:#B85450; border-color:#B8545033; }
+.horaire-row { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border2); }
+.horaire-row:last-child { border-bottom:none; }
+.horaire-day { width:36px; font-size:12px; font-weight:500; color:var(--text); flex-shrink:0; }
+.horaire-toggle { position:relative; width:36px; height:20px; background:var(--border2); border-radius:20px; cursor:pointer; transition:background 0.2s; border:none; padding:0; flex-shrink:0; }
+.horaire-toggle::after { content:""; position:absolute; top:2px; left:2px; width:16px; height:16px; background:#fff; border-radius:50%; transition:transform 0.2s; }
+.horaire-toggle.on { background:var(--or); }
+.horaire-toggle.on::after { transform:translateX(16px); }
+.horaire-times { display:flex; align-items:center; gap:4px; flex:1; }
+.horaire-times input { width:70px; padding:6px 8px; border:1px solid var(--border2); border-radius:6px; font-size:12px; font-family:'DM Sans',sans-serif; text-align:center; color:var(--text); outline:none; background:var(--bg); }
+.horaire-times input:focus { border-color:var(--or-light); }
+.horaire-times span { font-size:11px; color:var(--text3); }
+.horaire-ferme { font-size:11px; color:var(--text3); font-style:italic; }
+
 .feed-post-header-marion { display:flex; justify-content:space-between; align-items:center; padding:12px 16px 0; }
 .feed-delete-btn { background:none; border:none; cursor:pointer; font-size:16px; opacity:0.5; transition:opacity 0.2s; }
 .feed-delete-btn:hover { opacity:1; }
@@ -1810,9 +1835,57 @@ html, body {
   <div class="dash-screen" id="dscreen-params">
     <div class="dash-hero">
       <div class="dash-eyebrow">Gestion</div>
-      <div class="dash-title">Paramètres</div>
+      <div class="dash-title">Réglages</div>
     </div>
-    <div style="padding:24px 16px;font-size:13px;color:var(--text3);text-align:center;">Configuration avancée bientôt disponible.</div>
+
+    <!-- Section 1 — Infos du salon -->
+    <div class="settings-card">
+      <div class="settings-card-title">Infos du salon</div>
+      <label class="settings-label">Nom du salon
+        <input type="text" id="set-salon-nom" class="settings-input" placeholder="Glow Nails">
+      </label>
+      <label class="settings-label">Téléphone
+        <input type="tel" id="set-salon-tel" class="settings-input" placeholder="06 12 34 56 78">
+      </label>
+      <label class="settings-label">Adresse
+        <input type="text" id="set-salon-adresse" class="settings-input" placeholder="12 rue des Ongles, 31800 Saint-Gaudens">
+      </label>
+      <label class="settings-label">Instagram
+        <input type="text" id="set-salon-insta" class="settings-input" placeholder="@glownails">
+      </label>
+      <button class="settings-save-btn" id="btn-save-salon">Sauvegarder</button>
+    </div>
+
+    <!-- Section 2 — Horaires d'ouverture -->
+    <div class="settings-card">
+      <div class="settings-card-title">Horaires d'ouverture</div>
+      <div class="settings-card-sub">Ces horaires définissent les créneaux proposés aux clientes lors de la prise de RDV.</div>
+      <div id="horaires-grid"></div>
+      <button class="settings-save-btn" id="btn-save-horaires">Sauvegarder les horaires</button>
+    </div>
+
+    <!-- Section 3 — Créneaux RDV -->
+    <div class="settings-card">
+      <div class="settings-card-title">Créneaux de rendez-vous</div>
+      <div class="settings-card-sub">Définissez les heures exactes proposées aux clientes. Un créneau par ligne (ex : 9h00).</div>
+      <textarea id="set-creneaux" class="settings-input" style="min-height:100px;resize:vertical;" placeholder="9h00&#10;10h00&#10;11h30&#10;14h00&#10;15h30&#10;17h00"></textarea>
+      <button class="settings-save-btn" id="btn-save-creneaux">Sauvegarder les créneaux</button>
+    </div>
+
+    <!-- Section 4 — Compte Marion -->
+    <div class="settings-card">
+      <div class="settings-card-title">Mon compte</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--or-light);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:var(--or);">M</div>
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--text);">Marion</div>
+          <div id="set-marion-email" style="font-size:11px;color:var(--text3);"></div>
+        </div>
+      </div>
+      <button class="settings-outline-btn" id="btn-marion-reset-pwd">Modifier mon mot de passe</button>
+      <button class="settings-outline-btn settings-logout-btn" id="btn-marion-logout">Se déconnecter</button>
+    </div>
+
   </div>
 
   </div><!-- /dash-content -->
@@ -2025,7 +2098,7 @@ function showLoginScreen() {
 // ═══════════════════════════════════════════════════════
 //  ENTRÉE APP
 // ═══════════════════════════════════════════════════════
-function enterCliente() {
+async function enterCliente() {
   document.getElementById("login-screen").style.display = "none";
   document.getElementById("app").style.display = "block";
   applyUser();
@@ -2035,6 +2108,8 @@ function enterCliente() {
   startRdvsListener();
   startPostsListener();
   initInspiCliente();
+  // Charger horaires + créneaux dynamiques avant le rendu calendrier
+  await Promise.all([loadSettingsHoraires(), loadSettingsCreneaux()]);
   selDay = new Date().getDate();
   selNAs = [];
   renderCal();
@@ -2052,6 +2127,7 @@ function enterMarion() {
   startPostsListener();
   loadDashClientes();
   initGalerieAdmin();
+  loadAllSettings();
 }
 
 // ── Dashboard nav tab switching ──
@@ -2941,17 +3017,18 @@ function renderCal(){
     const dow=(offset+d-1)%7;
     const isToday=d===today.getDate()&&calM===today.getMonth()&&calY===today.getFullYear();
     const past=isPastDay(d);
-    const dimanche=(dow===6);
     const dayBlocked=isDayBlocked(calY,calM,d);
+    const dayClosed=!isDayOpenByHoraires(calY,calM,d).open;
+    const unavailable=past||dayBlocked||dayClosed;
     let cls="cal-d";
     if(isToday) cls+=" today";
-    if(d===selDay&&!past&&!dimanche&&!dayBlocked) cls+=" sel";
+    if(d===selDay&&!unavailable) cls+=" sel";
     if(userDays.includes(d)&&!past) cls+=" dot";
-    if(past||dimanche||dayBlocked) cls+=" off";
-    if(!past&&!dimanche&&window._clienteRouge) cls+=" off";
+    if(unavailable) cls+=" off";
+    if(!unavailable&&window._clienteRouge) cls+=" off";
     el.className=cls;
     el.textContent=d;
-    if(!past&&!dimanche&&!dayBlocked) el.onclick=()=>selDate(d);
+    if(!unavailable) el.onclick=()=>selDate(d);
     grid.appendChild(el);
   }
 }
@@ -2959,6 +3036,7 @@ function renderCal(){
 window.selDate = function(d){
   if(isPastDay(d)) return;
   if(isDayBlocked(calY,calM,d)) return;
+  if(!isDayOpenByHoraires(calY,calM,d).open) return;
   selDay=d;
   const months=["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"];
   document.getElementById("cr-title").textContent="Créneaux · "+d+" "+months[calM];
@@ -2989,14 +3067,34 @@ function isPastSlot(heure){
   return now.getHours()>h || (now.getHours()===h && now.getMinutes()>=m);
 }
 
+function isDayOpenByHoraires(year, month, day) {
+  // Vérifie les horaires configurés pour ce jour de la semaine
+  // Retourne { open, debut, fin } ou { open: false }
+  // Si aucun horaire configuré, on considère ouvert par défaut (Lun-Sam)
+  const d = new Date(year, month, day);
+  let dow = d.getDay(); // 0=dim
+  dow = dow === 0 ? 6 : dow - 1; // 0=lun … 6=dim
+  const h = horairesData[dow];
+  if (!h) return { open: (dow < 6), debut: "09:00", fin: "18:00" }; // défaut si pas encore configuré
+  if (!h.actif) return { open: false };
+  return { open: true, debut: h.debut || "09:00", fin: h.fin || "18:00" };
+}
+
+function isCreneauInHoraires(creneau, horaire) {
+  // Vérifie qu'un créneau (ex "14h00" ou "9h00") est dans la plage horaire
+  if (!horaire.open) return false;
+  const t = creneau.replace("h", ":").padStart(5, "0"); // "9h00" → "09:00"
+  return t >= horaire.debut && t < horaire.fin;
+}
+
 function renderCr(){
   const grid=document.getElementById("cr-grid");
   if(!grid) return;
-  const all=["9h00","10h00","11h30","14h00","15h30","17h00"];
-  const ferme=["11h30","17h00"];
+  const all = creneauxData.length ? creneauxData : ["9h00","10h00","11h30","14h00","15h30","17h00"];
   const dayBlocked=isDayBlocked(calY,calM,selDay);
+  const horaire = isDayOpenByHoraires(calY, calM, selDay);
   grid.innerHTML="";
-  if(dayBlocked){
+  if(dayBlocked || !horaire.open){
     grid.innerHTML="<div style='grid-column:1/-1;text-align:center;font-size:12px;color:var(--text3);padding:12px;'>Journée indisponible</div>";
     return;
   }
@@ -3004,12 +3102,13 @@ function renderCr(){
     const el=document.createElement("div");
     const pris=isSlotPris(c);
     const passe=isPastSlot(c);
+    const horsHoraire = !isCreneauInHoraires(c, horaire);
     let cls="cr";
-    if(ferme.includes(c)||pris||passe) cls+=" off";
+    if(horsHoraire||pris||passe) cls+=" off";
     else if(c===selCr) cls+=" active";
     el.className=cls;
     el.textContent=c+(pris?" ✗":"");
-    if(!ferme.includes(c)&&!pris) el.onclick=()=>{selCr=c;renderCr();};
+    if(!horsHoraire&&!pris&&!passe) el.onclick=()=>{selCr=c;renderCr();};
     grid.appendChild(el);
   });
 }
@@ -4433,6 +4532,156 @@ function renderFeedMarion() {
   });
 }
 
+// ═══════════════════════════════════════════════════════
+//  RÉGLAGES MARION — Salon, Horaires, Créneaux, Compte
+// ═══════════════════════════════════════════════════════
+
+const JOURS = ["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"];
+let horairesData = {};
+let creneauxData = [];
+
+// ── Section 1 : Infos salon ──
+async function loadSettingsSalon() {
+  try {
+    const snap = await getDoc(doc(db, "settings", "salon"));
+    if (!snap.exists()) return;
+    const d = snap.data();
+    const f = (id, key) => { const el = document.getElementById(id); if (el && d[key]) el.value = d[key]; };
+    f("set-salon-nom", "nom");
+    f("set-salon-tel", "tel");
+    f("set-salon-adresse", "adresse");
+    f("set-salon-insta", "insta");
+  } catch(e) { console.error("loadSettingsSalon:", e); }
+}
+
+async function saveSettingsSalon() {
+  const btn = document.getElementById("btn-save-salon");
+  if (btn) { btn.textContent = "Enregistrement…"; btn.disabled = true; }
+  try {
+    await setDoc(doc(db, "settings", "salon"), {
+      nom:     (document.getElementById("set-salon-nom")?.value || "").trim(),
+      tel:     (document.getElementById("set-salon-tel")?.value || "").trim(),
+      adresse: (document.getElementById("set-salon-adresse")?.value || "").trim(),
+      insta:   (document.getElementById("set-salon-insta")?.value || "").trim()
+    }, { merge: true });
+    showToast("✦ Infos du salon enregistrées !");
+  } catch(e) {
+    console.error("saveSettingsSalon:", e);
+    showToast("Erreur lors de la sauvegarde.");
+  } finally {
+    if (btn) { btn.textContent = "Sauvegarder"; btn.disabled = false; }
+  }
+}
+
+// ── Section 2 : Horaires d'ouverture ──
+function renderHorairesGrid() {
+  const grid = document.getElementById("horaires-grid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  JOURS.forEach((jour, i) => {
+    const data = horairesData[i] || { actif: (i < 5), debut: "09:00", fin: "18:00" };
+    const row = document.createElement("div");
+    row.className = "horaire-row";
+    row.innerHTML =
+      '<span class="horaire-day">' + jour + '</span>' +
+      '<button type="button" class="horaire-toggle' + (data.actif ? " on" : "") + '" data-jour="' + i + '"></button>' +
+      (data.actif
+        ? '<div class="horaire-times">' +
+            '<input type="time" value="' + data.debut + '" data-jour="' + i + '" data-field="debut">' +
+            '<span>→</span>' +
+            '<input type="time" value="' + data.fin + '" data-jour="' + i + '" data-field="fin">' +
+          '</div>'
+        : '<span class="horaire-ferme">Fermé</span>');
+    grid.appendChild(row);
+  });
+  // Toggle listeners
+  grid.querySelectorAll(".horaire-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const j = parseInt(btn.dataset.jour);
+      if (!horairesData[j]) horairesData[j] = { actif: true, debut: "09:00", fin: "18:00" };
+      horairesData[j].actif = !horairesData[j].actif;
+      renderHorairesGrid();
+    });
+  });
+  // Time input listeners
+  grid.querySelectorAll(".horaire-times input").forEach(inp => {
+    inp.addEventListener("change", () => {
+      const j = parseInt(inp.dataset.jour);
+      if (!horairesData[j]) horairesData[j] = { actif: true, debut: "09:00", fin: "18:00" };
+      horairesData[j][inp.dataset.field] = inp.value;
+    });
+  });
+}
+
+async function loadSettingsHoraires() {
+  try {
+    const snap = await getDoc(doc(db, "settings", "horaires"));
+    if (snap.exists() && snap.data().jours) {
+      horairesData = snap.data().jours;
+    } else {
+      // Defaults : Lun-Ven 09:00-18:00, Sam-Dim fermé
+      JOURS.forEach((_, i) => {
+        horairesData[i] = { actif: (i < 5), debut: "09:00", fin: "18:00" };
+      });
+    }
+  } catch(e) { console.error("loadSettingsHoraires:", e); }
+  renderHorairesGrid();
+}
+
+async function saveSettingsHoraires() {
+  const btn = document.getElementById("btn-save-horaires");
+  if (btn) { btn.textContent = "Enregistrement…"; btn.disabled = true; }
+  try {
+    await setDoc(doc(db, "settings", "horaires"), { jours: horairesData }, { merge: true });
+    showToast("✦ Horaires enregistrés !");
+  } catch(e) {
+    console.error("saveSettingsHoraires:", e);
+    showToast("Erreur lors de la sauvegarde.");
+  } finally {
+    if (btn) { btn.textContent = "Sauvegarder les horaires"; btn.disabled = false; }
+  }
+}
+
+// ── Section 3 : Créneaux RDV ──
+async function loadSettingsCreneaux() {
+  try {
+    const snap = await getDoc(doc(db, "settings", "creneaux"));
+    if (snap.exists() && snap.data().liste) {
+      creneauxData = snap.data().liste;
+    } else {
+      creneauxData = ["9h00","10h00","11h30","14h00","15h30","17h00"];
+    }
+  } catch(e) { console.error("loadSettingsCreneaux:", e); }
+  const el = document.getElementById("set-creneaux");
+  if (el) el.value = creneauxData.join("\n");
+}
+
+async function saveSettingsCreneaux() {
+  const btn = document.getElementById("btn-save-creneaux");
+  if (btn) { btn.textContent = "Enregistrement…"; btn.disabled = true; }
+  try {
+    const raw = (document.getElementById("set-creneaux")?.value || "").trim();
+    const liste = raw.split("\n").map(s => s.trim()).filter(Boolean);
+    if (!liste.length) { showToast("Ajoutez au moins un créneau."); return; }
+    creneauxData = liste;
+    await setDoc(doc(db, "settings", "creneaux"), { liste }, { merge: true });
+    showToast("✦ Créneaux enregistrés !");
+  } catch(e) {
+    console.error("saveSettingsCreneaux:", e);
+    showToast("Erreur lors de la sauvegarde.");
+  } finally {
+    if (btn) { btn.textContent = "Sauvegarder les créneaux"; btn.disabled = false; }
+  }
+}
+
+// ── Charger tous les réglages ──
+async function loadAllSettings() {
+  await Promise.all([loadSettingsSalon(), loadSettingsHoraires(), loadSettingsCreneaux()]);
+  // Afficher l'email Marion
+  const emailEl = document.getElementById("set-marion-email");
+  if (emailEl && currentUser) emailEl.textContent = currentUser.email;
+}
+
 // ── Brancher tous les boutons via addEventListener (module scope) ──
 document.addEventListener("DOMContentLoaded", () => {
 
@@ -4484,6 +4733,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnPublier = document.getElementById("btn-publier-actu");
   if (btnPublier) btnPublier.addEventListener("click", () => window.publierActu());
   initActusPhoto();
+
+  // Réglages Marion
+  const btnSaveSalon = document.getElementById("btn-save-salon");
+  if (btnSaveSalon) btnSaveSalon.addEventListener("click", saveSettingsSalon);
+  const btnSaveHoraires = document.getElementById("btn-save-horaires");
+  if (btnSaveHoraires) btnSaveHoraires.addEventListener("click", saveSettingsHoraires);
+  const btnSaveCreneaux = document.getElementById("btn-save-creneaux");
+  if (btnSaveCreneaux) btnSaveCreneaux.addEventListener("click", saveSettingsCreneaux);
+  const btnMarionPwd = document.getElementById("btn-marion-reset-pwd");
+  if (btnMarionPwd) btnMarionPwd.addEventListener("click", () => window.marionResetPwd());
+  const btnMarionLogout = document.getElementById("btn-marion-logout");
+  if (btnMarionLogout) btnMarionLogout.addEventListener("click", () => {
+    if (confirm("Se déconnecter ?")) signOut(auth);
+  });
 
   // Fiche cliente : retour à la liste
   const ficheBack = document.getElementById("fiche-back");
