@@ -4793,23 +4793,33 @@ window.openRgpdModal = function(type) {
   if (modal) modal.style.display = "";
 };
 
+// localStorage safe — fallback mémoire si bloqué (Safari privé, iOS)
+let _cookieMemory = null;
+function cookieGet() {
+  try { return localStorage.getItem("gn_cookies"); } catch(e) { return _cookieMemory; }
+}
+function cookieSet(val) {
+  _cookieMemory = val;
+  try { localStorage.setItem("gn_cookies", val); } catch(e) { /* quota/privé */ }
+}
+
 window.acceptCookies = function() {
-  localStorage.setItem("gn_cookies", "accepted");
+  cookieSet("accepted");
   const banner = document.getElementById("rgpd-cookie-banner");
   if (banner) banner.style.display = "none";
 };
 
 window.refuseCookies = function() {
-  localStorage.setItem("gn_cookies", "refused");
+  cookieSet("refused");
   const banner = document.getElementById("rgpd-cookie-banner");
   if (banner) banner.style.display = "none";
 };
 
 // Afficher le bandeau cookies si pas encore de choix
 function initCookieBanner() {
-  if (!localStorage.getItem("gn_cookies")) {
+  if (!cookieGet()) {
     const banner = document.getElementById("rgpd-cookie-banner");
-    if (banner) banner.style.display = "";
+    if (banner) banner.style.display = "block";
   }
 }
 
