@@ -2362,7 +2362,7 @@ const PRESTAS = [
   { id:"remplissage",label:"Remplissage 3 à 4 sem",   duree:90,  prix:40, groupe:"pose" },
   { id:"pedicure",   label:"Pédicure",                 duree:105, prix:40, groupe:"extra" },
   { id:"depose",     label:"Dépose complète",           duree:45,  prix:10, groupe:"extra" },
-  { id:"mainpied",   label:"Main + pied",               duree:210, prix:75, groupe:"solo" },
+  { id:"mainpied",   label:"Main + pied",               duree:210, prix:75, groupe:"combo" },
   { id:"french",     label:"French classique",          duree:15,  prix:8,  groupe:"finition" },
   { id:"frenchautre",label:"Autres french",             duree:25,  prix:10, groupe:"finition" },
   { id:"babyboomer", label:"Baby boomer",               duree:15,  prix:10, groupe:"finition" },
@@ -2370,12 +2370,12 @@ const PRESTAS = [
 
 // Règles de compatibilité
 // "pose" → 1 seul parmi ce groupe
-// "solo" → seul, rien d'autre
-// "extra" / "finition" → cumulables avec "pose", entre eux et avec NA
-// Finitions grisées par défaut, déverrouillées uniquement par une pose (ou pédicure → french seulement)
+// "combo" (mainpied) → remplace pose+pédicure, compatible avec dépose, finitions et NA
+// "extra" / "finition" → cumulables avec "pose" ou "combo", entre eux et avec NA
+// Finitions grisées par défaut, déverrouillées par pose/combo (ou pédicure → french seulement)
 
 function isNAUnlocked(selection) {
-  return selection.some(p => p.groupe === "pose");
+  return selection.some(p => p.groupe === "pose" || p.id === "mainpied");
 }
 
 function getCompatibles(selection) {
@@ -2383,18 +2383,28 @@ function getCompatibles(selection) {
     // Rien sélectionné → finitions grisées dès le départ
     return PRESTAS.filter(p => p.groupe !== "finition");
   }
-  if (selection.some(p => p.groupe === "solo")) return []; // Main+Pied = solo
 
   const hasPose      = selection.some(p => p.groupe === "pose");
+  const hasCombo     = selection.some(p => p.id === "mainpied");
   const hasPedicure  = selection.some(p => p.id === "pedicure");
+  const hasPoseLike  = hasPose || hasCombo; // pose ou mainpied → déverrouille finitions + NA
 
   return PRESTAS.filter(p => {
     if (selection.includes(p)) return false;
-    if (p.groupe === "solo") return false;
+    // Combo mainpied : bloque poses et pédicure, autorise dépose + finitions
+    if (hasCombo) {
+      if (p.groupe === "pose") return false;
+      if (p.id === "pedicure") return false;
+      if (p.groupe === "finition") return true;
+      return true; // dépose et autres extras
+    }
+    // Pose sélectionnée → bloque mainpied (incompatible)
+    if (hasPose && p.id === "mainpied") return false;
+    if (p.groupe === "combo") return true; // mainpied reste accessible si pas de pose
     if (p.groupe === "pose" && hasPose) return false;
-    // Finitions : besoin d'une pose, ou pédicure → french classique uniquement
+    // Finitions : besoin d'une pose/combo, ou pédicure → french classique uniquement
     if (p.groupe === "finition") {
-      if (hasPose) return true;
+      if (hasPoseLike) return true;
       if (hasPedicure && p.id === "french") return true;
       return false;
     }
@@ -2404,11 +2414,16 @@ function getCompatibles(selection) {
 
 function getDisabledTooltip(p, selection) {
   const hasPose     = selection.some(x => x.groupe === "pose");
+  const hasCombo    = selection.some(x => x.id === "mainpied");
   const hasPedicure = selection.some(x => x.id === "pedicure");
+  const hasPoseLike = hasPose || hasCombo;
   if (p.groupe === "finition") {
-    if (!hasPose && !hasPedicure) return "Sélectionnez d\u2019abord une pose (gainage, rallongement\u2026)";
-    if (hasPedicure && !hasPose && p.id !== "french") return "Disponible uniquement avec une pose, pas avec la pédicure seule";
+    if (!hasPoseLike && !hasPedicure) return "Sélectionnez d\u2019abord une pose (gainage, rallongement\u2026)";
+    if (hasPedicure && !hasPoseLike && p.id !== "french") return "Disponible uniquement avec une pose, pas avec la pédicure seule";
   }
+  if (p.id === "mainpied" && hasPose) return "Non cumulable avec une pose déjà sélectionnée";
+  if (p.groupe === "pose" && hasCombo) return "Déjà inclus dans Main + pied";
+  if (p.id === "pedicure" && hasCombo) return "Déjà inclus dans Main + pied";
   return "Non cumulable avec votre sélection";
 }
 
@@ -2430,7 +2445,7 @@ window.confirmRdv = async function() {
   if (isDayBlocked(calY, calM, selDay)) { showToast("⚠ Cette journée n'est pas disponible."); return; }
   if (!selPrestas.length) { showToast("Veuillez choisir une prestation."); return; }
   const hasFinitions = selPrestas.some(x => x.groupe === "finition");
-  const hasPoseConfirm = selPrestas.some(x => x.groupe === "pose");
+  const hasPoseConfirm = selPrestas.some(x => x.groupe === "pose" || x.id === "mainpied");
   const hasPedicureConfirm = selPrestas.some(x => x.id === "pedicure");
   if (hasFinitions && !hasPoseConfirm && !hasPedicureConfirm) { showToast("⚠ Ajoutez une prestation de base (gainage, rallongement…) pour compléter votre sélection."); return; }
   if (selNAs.length && !hasPoseConfirm) { showToast("⚠ Le Nail Art nécessite une prestation de base (gainage, rallongement…)."); return; }
@@ -3298,29 +3313,32 @@ function renderPrestas() {
           selPrestas = selPrestas.filter(x => x.id !== p.id);
           // Auto-désélection des finitions orphelines
           const stillHasPose     = selPrestas.some(x => x.groupe === "pose");
+          const stillHasCombo    = selPrestas.some(x => x.id === "mainpied");
+          const stillHasPoseLike = stillHasPose || stillHasCombo;
           const stillHasPedicure = selPrestas.some(x => x.id === "pedicure");
-          if (!stillHasPose) {
+          if (!stillHasPoseLike) {
             if (stillHasPedicure) {
               // Pédicure seule → garder french classique, retirer les autres finitions
               selPrestas = selPrestas.filter(x => x.groupe !== "finition" || x.id === "french");
             } else {
-              // Ni pose ni pédicure → retirer toutes les finitions
+              // Ni pose ni combo ni pédicure → retirer toutes les finitions
               selPrestas = selPrestas.filter(x => x.groupe !== "finition");
             }
           }
-          // NA nettoyés si plus de pose
+          // NA nettoyés si plus de pose/combo
           if (!isNAUnlocked(selPrestas)) selNAs = [];
           // Si plus rien, réinitialiser NA aussi
           if (selPrestas.length === 0) selNAs = [];
         } else {
-          // Si solo → remplacer tout
-          if (p.groupe === "solo") {
-            selPrestas = [p];
+          if (p.id === "mainpied") {
+            // Main+pied → retirer poses et pédicure (déjà incluses)
+            selPrestas = selPrestas.filter(x => x.groupe !== "pose" && x.id !== "pedicure");
+            selPrestas = [...selPrestas, p];
+          } else if (p.groupe === "pose") {
+            // Pose → retirer mainpied et autres poses
+            selPrestas = selPrestas.filter(x => x.groupe !== "pose" && x.id !== "mainpied");
+            selPrestas = [...selPrestas, p];
           } else {
-            // Retirer les autres "pose" si on ajoute une pose
-            if (p.groupe === "pose") {
-              selPrestas = selPrestas.filter(x => x.groupe !== "pose");
-            }
             selPrestas = [...selPrestas, p];
           }
         }
@@ -3335,9 +3353,7 @@ function renderPrestas() {
   // Message compatibilité si nécessaire
   const msgEl = document.getElementById("compat-msg");
   if (msgEl) {
-    const hasSolo = selPrestas.some(p => p.groupe === "solo");
-    msgEl.style.display = hasSolo ? "block" : "none";
-    if (hasSolo) msgEl.textContent = "Main + Pied inclut mains et pieds — aucun ajout possible.";
+    msgEl.style.display = "none";
   }
 }
 
@@ -3345,8 +3361,7 @@ function renderNA() {
   const row     = document.getElementById("pills-na");
   const section = document.getElementById("section-na");
   if (!row) return;
-  const hasSolo = selPrestas.some(p => p.groupe === "solo");
-  const naOk    = isNAUnlocked(selPrestas) && !hasSolo;
+  const naOk = isNAUnlocked(selPrestas);
   if (section) section.style.display = naOk ? "block" : "none";
   if (!naOk) { selNAs = []; return; }
   row.innerHTML = "";
