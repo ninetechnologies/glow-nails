@@ -2372,22 +2372,44 @@ const PRESTAS = [
 // "pose" → 1 seul parmi ce groupe
 // "solo" → seul, rien d'autre
 // "extra" / "finition" → cumulables avec "pose", entre eux et avec NA
+// Finitions grisées par défaut, déverrouillées uniquement par une pose (ou pédicure → french seulement)
+
+function isNAUnlocked(selection) {
+  return selection.some(p => p.groupe === "pose");
+}
+
 function getCompatibles(selection) {
-  if (selection.length === 0) return PRESTAS;
+  if (selection.length === 0) {
+    // Rien sélectionné → finitions grisées dès le départ
+    return PRESTAS.filter(p => p.groupe !== "finition");
+  }
   if (selection.some(p => p.groupe === "solo")) return []; // Main+Pied = solo
 
   const hasPose      = selection.some(p => p.groupe === "pose");
-  const hasDepose    = selection.some(p => p.id === "depose");
-  const hasOnlyDepose = selection.length === 1 && hasDepose;
+  const hasPedicure  = selection.some(p => p.id === "pedicure");
 
   return PRESTAS.filter(p => {
     if (selection.includes(p)) return false;
     if (p.groupe === "solo") return false;
     if (p.groupe === "pose" && hasPose) return false;
-    // Dépose seule : pas de finition (french, autres french, baby boomer)
-    if (hasOnlyDepose && p.groupe === "finition") return false;
+    // Finitions : besoin d'une pose, ou pédicure → french classique uniquement
+    if (p.groupe === "finition") {
+      if (hasPose) return true;
+      if (hasPedicure && p.id === "french") return true;
+      return false;
+    }
     return true;
   });
+}
+
+function getDisabledTooltip(p, selection) {
+  const hasPose     = selection.some(x => x.groupe === "pose");
+  const hasPedicure = selection.some(x => x.id === "pedicure");
+  if (p.groupe === "finition") {
+    if (!hasPose && !hasPedicure) return "Sélectionnez d\u2019abord une pose (gainage, rallongement\u2026)";
+    if (hasPedicure && !hasPose && p.id !== "french") return "Disponible uniquement avec une pose, pas avec la pédicure seule";
+  }
+  return "Non cumulable avec votre sélection";
 }
 
 const NA_OPTIONS = [
@@ -2407,6 +2429,11 @@ window.confirmRdv = async function() {
   if (window._clienteRouge) { showToast("⚠ Réservation non autorisée. Contactez le salon."); return; }
   if (isDayBlocked(calY, calM, selDay)) { showToast("⚠ Cette journée n'est pas disponible."); return; }
   if (!selPrestas.length) { showToast("Veuillez choisir une prestation."); return; }
+  const hasFinitions = selPrestas.some(x => x.groupe === "finition");
+  const hasPoseConfirm = selPrestas.some(x => x.groupe === "pose");
+  const hasPedicureConfirm = selPrestas.some(x => x.id === "pedicure");
+  if (hasFinitions && !hasPoseConfirm && !hasPedicureConfirm) { showToast("⚠ Ajoutez une prestation de base (gainage, rallongement…) pour compléter votre sélection."); return; }
+  if (selNAs.length && !hasPoseConfirm) { showToast("⚠ Le Nail Art nécessite une prestation de base (gainage, rallongement…)."); return; }
   const labels = selPrestas.map(x => x.label);
   selNAs.forEach(n => labels.push(n.label));
   const p     = labels.join(" + ");
@@ -3263,12 +3290,26 @@ function renderPrestas() {
     if (!isCompatible) {
       el.style.opacity = "0.35";
       el.style.cursor  = "not-allowed";
-      el.title = "Non cumulable avec votre sélection";
+      el.title = getDisabledTooltip(p, selPrestas);
     } else {
       el.addEventListener("click", () => {
         if (isSelected) {
           // Désélectionner librement
           selPrestas = selPrestas.filter(x => x.id !== p.id);
+          // Auto-désélection des finitions orphelines
+          const stillHasPose     = selPrestas.some(x => x.groupe === "pose");
+          const stillHasPedicure = selPrestas.some(x => x.id === "pedicure");
+          if (!stillHasPose) {
+            if (stillHasPedicure) {
+              // Pédicure seule → garder french classique, retirer les autres finitions
+              selPrestas = selPrestas.filter(x => x.groupe !== "finition" || x.id === "french");
+            } else {
+              // Ni pose ni pédicure → retirer toutes les finitions
+              selPrestas = selPrestas.filter(x => x.groupe !== "finition");
+            }
+          }
+          // NA nettoyés si plus de pose
+          if (!isNAUnlocked(selPrestas)) selNAs = [];
           // Si plus rien, réinitialiser NA aussi
           if (selPrestas.length === 0) selNAs = [];
         } else {
@@ -3284,9 +3325,6 @@ function renderPrestas() {
           }
         }
         renderPrestas();
-        // NA seulement si au moins une pose ou prestation de base
-        const hasPoseOrExtra = selPrestas.some(x => x.groupe === "pose" || x.groupe === "extra" || x.groupe === "finition");
-        if (!hasPoseOrExtra) selNAs = [];
         renderNA();
         updateSummary();
       });
@@ -3308,8 +3346,9 @@ function renderNA() {
   const section = document.getElementById("section-na");
   if (!row) return;
   const hasSolo = selPrestas.some(p => p.groupe === "solo");
-  if (section) section.style.display = hasSolo ? "none" : "block";
-  if (hasSolo) { selNAs = []; return; }
+  const naOk    = isNAUnlocked(selPrestas) && !hasSolo;
+  if (section) section.style.display = naOk ? "block" : "none";
+  if (!naOk) { selNAs = []; return; }
   row.innerHTML = "";
 
   NA_OPTIONS.forEach(n => {

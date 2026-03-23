@@ -1,16 +1,16 @@
-const functions = require("firebase-functions");
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 admin.initializeApp();
 
-exports.deleteUser = functions.https.onCall(async (data, context) => {
+exports.deleteUser = onCall({ invoker: "public" }, async (request) => {
   // Vérification : seul l'admin peut appeler cette fonction
-  if (!context.auth || context.auth.token.email !== "glownails.contact31@gmail.com") {
-    throw new functions.https.HttpsError("permission-denied", "Accès refusé.");
+  if (!request.auth || request.auth.token.email !== "glownails.contact31@gmail.com") {
+    throw new HttpsError("permission-denied", "Accès refusé.");
   }
 
-  const uid = data.uid;
+  const uid = request.data.uid;
   if (!uid) {
-    throw new functions.https.HttpsError("invalid-argument", "UID manquant.");
+    throw new HttpsError("invalid-argument", "UID manquant.");
   }
 
   const db = admin.firestore();

@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(node:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(firebase functions:log:*)",
+      "Bash(firebase deploy:*)",
+      "Bash(gcloud run:*)",
+      "Bash(where gcloud)",
+      "Bash(cmd //c \"where gcloud\")",
+      "Read(//c/Program Files \\(x86\\)/Google/Cloud SDK/google-cloud-sdk/bin/**)",
+      "Read(//c/Users/ordi/AppData/Local/Google/Cloud SDK/google-cloud-sdk/bin/**)"
     ]
   }
 }
