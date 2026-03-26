@@ -1594,6 +1594,12 @@ html, body {
     <div class="section-label">Mes Rendez-vous</div>
     <div class="hist-card" id="rdv-list-dynamic"></div>
 
+    <div class="section-label">Mes Photos</div>
+    <div class="hist-card" id="mes-photos-grid-wrap" style="padding:12px;">
+      <div id="mes-photos-grid" class="photo-grid"></div>
+      <div id="mes-photos-empty" style="font-size:12px;color:var(--text3);text-align:center;">Aucune photo.</div>
+    </div>
+
     <!-- Paramètres -->
     <div class="section-label" style="margin-top:8px;">Paramètres</div>
     <div style="margin:0 16px 16px;background:var(--white);border-radius:var(--radius);border:1px solid var(--border2);box-shadow:var(--shadow);overflow:hidden;">
@@ -3609,6 +3615,33 @@ function refreshEspace(){
   list.querySelectorAll("[data-action='annulerRdv']").forEach(btn => {
     btn.addEventListener("click", () => annulerRdv(btn.dataset.rdvid));
   });
+
+  // Charger les photos de la cliente
+  refreshMesPhotos();
+}
+
+async function refreshMesPhotos() {
+  const grid = document.getElementById("mes-photos-grid");
+  const empty = document.getElementById("mes-photos-empty");
+  if (!grid || !currentUser) return;
+  try {
+    const snap = await getDoc(doc(db, "photos_clientes", currentUser.uid));
+    const photos = snap.exists() ? (snap.data().photos || []) : [];
+    if (!photos.length) {
+      grid.innerHTML = "";
+      if (empty) empty.style.display = "";
+      return;
+    }
+    if (empty) empty.style.display = "none";
+    grid.innerHTML = "";
+    photos.forEach(function(p) {
+      const div = document.createElement("div");
+      div.className = "photo-grid-item";
+      div.innerHTML = '<img src="' + p.url + '" alt="" loading="lazy">';
+      div.querySelector("img").addEventListener("click", function() { openLightbox(p.url); });
+      grid.appendChild(div);
+    });
+  } catch(e) { console.error("refreshMesPhotos:", e); }
 }
 
 // ── Loyalty ──────────────────────────────────────────
@@ -3890,7 +3923,26 @@ async function openFicheCliente(uid) {
 
   // RDV à venir
   html += "<div style='background:var(--white);border-radius:var(--radius);border:1px solid var(--border2);padding:16px;margin-bottom:12px;'>" +
-    "<div style='font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--or);margin-bottom:10px;'>RDV à venir (" + rdvAvenir.length + ")</div>";
+    "<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;'>" +
+      "<div style='font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--or);'>RDV à venir (" + rdvAvenir.length + ")</div>" +
+      "<button id='btn-add-rdv-manual' data-uid='" + uid + "' style='background:none;border:1px solid var(--or);border-radius:100px;padding:4px 12px;font-size:10px;color:var(--or);cursor:pointer;font-family:inherit;'>+ Ajouter un RDV</button>" +
+    "</div>" +
+    "<div id='fiche-add-rdv-form' style='display:none;border:1px solid var(--border2);border-radius:8px;padding:14px;margin-bottom:12px;background:var(--bg);'>" +
+      "<div style='font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--or);margin-bottom:10px;font-weight:600;'>Nouveau RDV manuel</div>" +
+      "<div style='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;'>" +
+        "<div><label style='font-size:10px;color:var(--text3);'>Date</label><input type='date' id='manual-rdv-date' style='width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:inherit;box-sizing:border-box;'></div>" +
+        "<div><label style='font-size:10px;color:var(--text3);'>Heure</label><input type='text' id='manual-rdv-heure' placeholder='ex: 10h00' style='width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:inherit;box-sizing:border-box;'></div>" +
+      "</div>" +
+      "<div style='margin-bottom:8px;'><label style='font-size:10px;color:var(--text3);'>Prestation</label><select id='manual-rdv-presta' style='width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:inherit;background:var(--white);'>" +
+        PRESTAS.map(function(p) { return "<option value='" + p.label + "' data-prix='" + p.prix + "'>" + p.label + " — " + p.prix + "€</option>"; }).join("") +
+        NA_OPTIONS.map(function(n) { return "<option value='" + n.label + "' data-prix='" + n.prix + "'>" + n.label + " — " + n.prix + "€</option>"; }).join("") +
+      "</select></div>" +
+      "<div style='margin-bottom:10px;'><label style='font-size:10px;color:var(--text3);'>Prix (€)</label><input type='text' id='manual-rdv-prix' style='width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:inherit;box-sizing:border-box;'></div>" +
+      "<div style='display:flex;gap:8px;'>" +
+        "<button id='btn-manual-rdv-save' data-uid='" + uid + "' style='flex:1;padding:8px;background:var(--text);color:#fff;border:none;border-radius:100px;font-size:11px;cursor:pointer;font-family:inherit;'>Confirmer le RDV</button>" +
+        "<button id='btn-manual-rdv-cancel' style='padding:8px 14px;background:none;border:1px solid var(--border);border-radius:100px;font-size:11px;cursor:pointer;color:var(--text3);font-family:inherit;'>Annuler</button>" +
+      "</div>" +
+    "</div>";
   if (!rdvAvenir.length) {
     html += "<div style='font-size:12px;color:var(--text3);'>Aucun RDV à venir.</div>";
   } else {
@@ -3962,6 +4014,75 @@ async function openFicheCliente(uid) {
   if (btnNotes) btnNotes.addEventListener("click", () => saveNotes(btnNotes.dataset.uid));
   // Init photos ongles pour cette fiche
   initFichePhotos(uid);
+
+  // Formulaire RDV manuel
+  const btnAddRdv = document.getElementById("btn-add-rdv-manual");
+  const rdvForm = document.getElementById("fiche-add-rdv-form");
+  const prestaSelect = document.getElementById("manual-rdv-presta");
+  const prixInput = document.getElementById("manual-rdv-prix");
+  if (btnAddRdv && rdvForm) {
+    btnAddRdv.addEventListener("click", () => {
+      rdvForm.style.display = rdvForm.style.display === "none" ? "" : "none";
+    });
+  }
+  if (prestaSelect && prixInput) {
+    prixInput.value = prestaSelect.selectedOptions[0]?.dataset.prix || "";
+    prestaSelect.addEventListener("change", () => {
+      prixInput.value = prestaSelect.selectedOptions[0]?.dataset.prix || "";
+    });
+  }
+  const btnCancelRdv = document.getElementById("btn-manual-rdv-cancel");
+  if (btnCancelRdv && rdvForm) {
+    btnCancelRdv.addEventListener("click", () => { rdvForm.style.display = "none"; });
+  }
+  const btnSaveRdv = document.getElementById("btn-manual-rdv-save");
+  if (btnSaveRdv) {
+    btnSaveRdv.addEventListener("click", async () => {
+      const dateVal = document.getElementById("manual-rdv-date").value;
+      const heureVal = document.getElementById("manual-rdv-heure").value.trim();
+      const prestaVal = prestaSelect.value;
+      const prixVal = prixInput.value.trim();
+      if (!dateVal || !heureVal || !prestaVal) {
+        showToast("Remplissez la date, l'heure et la prestation."); return;
+      }
+      const d = new Date(dateVal);
+      const jour = d.getDate(), mois = d.getMonth(), annee = d.getFullYear();
+      const joursSemaine = ["dim.","lun.","mar.","mer.","jeu.","ven.","sam."];
+      const moisNoms = ["jan.","fév.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+      const dateStr = joursSemaine[d.getDay()] + " " + jour + " " + moisNoms[mois] + " " + annee;
+
+      btnSaveRdv.textContent = "Enregistrement…";
+      btnSaveRdv.disabled = true;
+      try {
+        await addDoc(collection(db, "rdvs"), {
+          uid: uid,
+          email: c.email,
+          prenom: c.prenom,
+          nom: c.nom,
+          prestation: prestaVal,
+          date: dateStr,
+          jour: jour, mois: mois, annee: annee,
+          heure: heureVal,
+          duree: 0,
+          prix: prixVal ? prixVal + "€" : "",
+          statut: "confirme",
+          ts: serverTimestamp()
+        });
+        showToast("✦ RDV ajouté !");
+        // Rafraîchir les données et la fiche
+        const rdvsSnap = await getDocs(query(collection(db, "rdvs"), where("uid", "==", uid)));
+        const updatedRdvs = rdvsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const ci = allClientesData.find(x => x.uid === uid);
+        if (ci) ci.userRdvs = updatedRdvs;
+        openFicheCliente(uid);
+      } catch(e) {
+        console.error("Erreur ajout RDV manuel:", e);
+        showToast("Erreur : " + (e.message || "voir console"));
+        btnSaveRdv.textContent = "Confirmer le RDV";
+        btnSaveRdv.disabled = false;
+      }
+    });
+  }
 
   // Bouton supprimer compte
   const btnDel = document.getElementById("btn-delete-cliente");
