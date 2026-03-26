@@ -3929,15 +3929,13 @@ async function openFicheCliente(uid) {
     "</div>" +
     "<div id='fiche-add-rdv-form' style='display:none;border:1px solid var(--border2);border-radius:8px;padding:14px;margin-bottom:12px;background:var(--bg);'>" +
       "<div style='font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--or);margin-bottom:10px;font-weight:600;'>Nouveau RDV manuel</div>" +
-      "<div style='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;'>" +
+      "<div style='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;'>" +
         "<div><label style='font-size:10px;color:var(--text3);'>Date</label><input type='date' id='manual-rdv-date' style='width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:inherit;box-sizing:border-box;'></div>" +
         "<div><label style='font-size:10px;color:var(--text3);'>Heure</label><input type='text' id='manual-rdv-heure' placeholder='ex: 10h00' style='width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:inherit;box-sizing:border-box;'></div>" +
       "</div>" +
-      "<div style='margin-bottom:8px;'><label style='font-size:10px;color:var(--text3);'>Prestation</label><select id='manual-rdv-presta' style='width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:inherit;background:var(--white);'>" +
-        PRESTAS.map(function(p) { return "<option value='" + p.label + "' data-prix='" + p.prix + "'>" + p.label + " — " + p.prix + "€</option>"; }).join("") +
-        NA_OPTIONS.map(function(n) { return "<option value='" + n.label + "' data-prix='" + n.prix + "'>" + n.label + " — " + n.prix + "€</option>"; }).join("") +
-      "</select></div>" +
-      "<div style='margin-bottom:10px;'><label style='font-size:10px;color:var(--text3);'>Prix (€)</label><input type='text' id='manual-rdv-prix' style='width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:inherit;box-sizing:border-box;'></div>" +
+      "<div style='margin-bottom:8px;'><label style='font-size:10px;color:var(--text3);'>Prestations</label><div id='manual-pills-prestas' style='display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;'></div></div>" +
+      "<div id='manual-section-na' style='display:none;margin-bottom:8px;'><label style='font-size:10px;color:var(--text3);'>Nail Art</label><div id='manual-pills-na' style='display:flex;flex-direction:column;gap:6px;margin-top:4px;'></div></div>" +
+      "<div id='manual-rdv-summary' style='margin-bottom:10px;border:1px solid var(--border2);border-radius:6px;padding:10px;display:none;'></div>" +
       "<div style='display:flex;gap:8px;'>" +
         "<button id='btn-manual-rdv-save' data-uid='" + uid + "' style='flex:1;padding:8px;background:var(--text);color:#fff;border:none;border-radius:100px;font-size:11px;cursor:pointer;font-family:inherit;'>Confirmer le RDV</button>" +
         "<button id='btn-manual-rdv-cancel' style='padding:8px 14px;background:none;border:1px solid var(--border);border-radius:100px;font-size:11px;cursor:pointer;color:var(--text3);font-family:inherit;'>Annuler</button>" +
@@ -4015,40 +4013,207 @@ async function openFicheCliente(uid) {
   // Init photos ongles pour cette fiche
   initFichePhotos(uid);
 
-  // Formulaire RDV manuel
+  // Formulaire RDV manuel — sélection multiple prestations + NA
+  let manualPrestas = [];
+  let manualNAs = [];
+
   const btnAddRdv = document.getElementById("btn-add-rdv-manual");
   const rdvForm = document.getElementById("fiche-add-rdv-form");
-  const prestaSelect = document.getElementById("manual-rdv-presta");
-  const prixInput = document.getElementById("manual-rdv-prix");
   if (btnAddRdv && rdvForm) {
     btnAddRdv.addEventListener("click", () => {
-      rdvForm.style.display = rdvForm.style.display === "none" ? "" : "none";
-    });
-  }
-  if (prestaSelect && prixInput) {
-    prixInput.value = prestaSelect.selectedOptions[0]?.dataset.prix || "";
-    prestaSelect.addEventListener("change", () => {
-      prixInput.value = prestaSelect.selectedOptions[0]?.dataset.prix || "";
+      if (rdvForm.style.display === "none") {
+        manualPrestas = []; manualNAs = [];
+        rdvForm.style.display = "";
+        manualRenderPrestas(); manualRenderNA(); manualUpdateSummary();
+      } else {
+        rdvForm.style.display = "none";
+      }
     });
   }
   const btnCancelRdv = document.getElementById("btn-manual-rdv-cancel");
   if (btnCancelRdv && rdvForm) {
-    btnCancelRdv.addEventListener("click", () => { rdvForm.style.display = "none"; });
+    btnCancelRdv.addEventListener("click", () => {
+      rdvForm.style.display = "none";
+      manualPrestas = []; manualNAs = [];
+    });
   }
+
+  function manualPrixNA(n) {
+    return parseFloat(((n.prix / 10) * (n.qte || 10)).toFixed(2));
+  }
+  function manualFmtPrix(v) {
+    return Number.isInteger(v) ? v + "€" : v.toFixed(2).replace(".", ",") + "€";
+  }
+
+  function manualRenderPrestas() {
+    const row = document.getElementById("manual-pills-prestas");
+    if (!row) return;
+    const compatibles = getCompatibles(manualPrestas);
+    row.innerHTML = "";
+    PRESTAS.forEach(p => {
+      const isSel = manualPrestas.includes(p);
+      const isOk = isSel || compatibles.includes(p);
+      const el = document.createElement("div");
+      el.className = "pill" + (isSel ? " active" : "") + (!isOk ? " off" : "");
+      el.textContent = p.label + " · " + p.prix + "€";
+      el.style.fontSize = "11px";
+      if (!isOk) {
+        el.style.opacity = "0.35"; el.style.cursor = "not-allowed";
+        el.title = getDisabledTooltip(p, manualPrestas);
+      } else {
+        el.style.cursor = "pointer";
+        el.addEventListener("click", () => {
+          if (isSel) {
+            manualPrestas = manualPrestas.filter(x => x.id !== p.id);
+            const stillPose = manualPrestas.some(x => x.groupe === "pose");
+            const stillCombo = manualPrestas.some(x => x.id === "mainpied");
+            const stillPoseLike = stillPose || stillCombo;
+            const stillPedicure = manualPrestas.some(x => x.id === "pedicure");
+            if (!stillPoseLike) {
+              if (stillPedicure) manualPrestas = manualPrestas.filter(x => x.groupe !== "finition" || x.id === "french");
+              else manualPrestas = manualPrestas.filter(x => x.groupe !== "finition");
+            }
+            if (!isNAUnlocked(manualPrestas)) manualNAs = [];
+            if (!manualPrestas.length) manualNAs = [];
+          } else {
+            if (p.id === "mainpied") {
+              manualPrestas = manualPrestas.filter(x => x.groupe !== "pose" && x.id !== "pedicure");
+              manualPrestas = [...manualPrestas, p];
+            } else if (p.groupe === "pose") {
+              manualPrestas = manualPrestas.filter(x => x.groupe !== "pose" && x.id !== "mainpied");
+              manualPrestas = [...manualPrestas, p];
+            } else {
+              manualPrestas = [...manualPrestas, p];
+            }
+          }
+          manualRenderPrestas(); manualRenderNA(); manualUpdateSummary();
+        });
+      }
+      row.appendChild(el);
+    });
+  }
+
+  function manualRenderNA() {
+    const row = document.getElementById("manual-pills-na");
+    const section = document.getElementById("manual-section-na");
+    if (!row) return;
+    const naOk = isNAUnlocked(manualPrestas);
+    if (section) section.style.display = naOk ? "" : "none";
+    if (!naOk) { manualNAs = []; return; }
+    row.innerHTML = "";
+    NA_OPTIONS.forEach(n => {
+      const sel = manualNAs.find(x => x.id === n.id);
+      const isSel = !!sel;
+      const qte = sel ? sel.qte : 10;
+      const card = document.createElement("div");
+      card.style.cssText = "display:flex;flex-direction:column;gap:6px;padding:8px 10px;border-radius:8px;border:1px solid " +
+        (isSel ? "var(--or)" : "var(--border2)") + ";background:" + (isSel ? "rgba(168,131,74,0.06)" : "var(--white)") + ";cursor:pointer;transition:all 0.15s;";
+      const top = document.createElement("div");
+      top.style.cssText = "display:flex;align-items:center;gap:8px;";
+      const check = document.createElement("div");
+      check.style.cssText = "width:16px;height:16px;border-radius:50%;border:1.5px solid " +
+        (isSel ? "var(--or)" : "var(--border)") + ";background:" + (isSel ? "var(--or)" : "transparent") +
+        ";flex-shrink:0;display:flex;align-items:center;justify-content:center;";
+      if (isSel) check.innerHTML = "<svg width='8' height='8' viewBox='0 0 8 8'><path d='M1 4l2 2 4-4' stroke='#fff' stroke-width='1.5' fill='none' stroke-linecap='round'/></svg>";
+      const lbl = document.createElement("div");
+      lbl.style.cssText = "font-size:12px;color:var(--text);flex:1;";
+      lbl.textContent = n.label;
+      const prixLbl = document.createElement("div");
+      prixLbl.style.cssText = "font-family:'Cormorant Garamond',serif;font-size:16px;color:" + (isSel ? "var(--or)" : "var(--text3)") + ";white-space:nowrap;";
+      const pTotal = parseFloat(((n.prix / 10) * qte).toFixed(2));
+      prixLbl.textContent = (isSel && qte < 10) ? manualFmtPrix(pTotal) : n.prix + "€";
+      top.appendChild(check); top.appendChild(lbl); top.appendChild(prixLbl);
+      const bottom = document.createElement("div");
+      bottom.style.cssText = "display:" + (isSel ? "flex" : "none") + ";align-items:center;gap:8px;padding-top:4px;";
+      const doigtLbl = document.createElement("div");
+      doigtLbl.style.cssText = "font-size:10px;color:var(--text3);white-space:nowrap;";
+      doigtLbl.textContent = "Doigts :";
+      const minus = document.createElement("button");
+      minus.textContent = "\u2212";
+      minus.style.cssText = "width:24px;height:24px;border-radius:50%;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;";
+      const qteDisp = document.createElement("div");
+      qteDisp.style.cssText = "font-size:13px;font-weight:500;color:var(--text);min-width:20px;text-align:center;";
+      qteDisp.textContent = qte;
+      const plus = document.createElement("button");
+      plus.textContent = "+";
+      plus.style.cssText = minus.style.cssText;
+      const perDoigt = document.createElement("div");
+      perDoigt.style.cssText = "font-size:10px;color:var(--text3);margin-left:4px;";
+      perDoigt.textContent = Math.round(n.prix / 10) + "€/doigt";
+      bottom.appendChild(doigtLbl); bottom.appendChild(minus); bottom.appendChild(qteDisp); bottom.appendChild(plus); bottom.appendChild(perDoigt);
+      card.appendChild(top); card.appendChild(bottom);
+      top.addEventListener("click", () => {
+        if (isSel) manualNAs = manualNAs.filter(x => x.id !== n.id);
+        else manualNAs = [...manualNAs, { ...n, qte: 10 }];
+        manualRenderNA(); manualUpdateSummary();
+      });
+      minus.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const cur = manualNAs.find(x => x.id === n.id); if (!cur) return;
+        if (cur.qte <= 1) manualNAs = manualNAs.filter(x => x.id !== n.id);
+        else cur.qte--;
+        manualRenderNA(); manualUpdateSummary();
+      });
+      plus.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const cur = manualNAs.find(x => x.id === n.id); if (!cur) return;
+        if (cur.qte < 10) cur.qte++;
+        manualRenderNA(); manualUpdateSummary();
+      });
+      row.appendChild(card);
+    });
+  }
+
+  function manualUpdateSummary() {
+    const el = document.getElementById("manual-rdv-summary");
+    if (!el) return;
+    if (!manualPrestas.length && !manualNAs.length) { el.style.display = "none"; return; }
+    el.style.display = "";
+    const totalP = manualPrestas.reduce((s, p) => s + (p.prix || 0), 0);
+    const totalNA = manualNAs.reduce((s, n) => s + manualPrixNA(n), 0);
+    const total = parseFloat((totalP + totalNA).toFixed(2));
+    const dureeP = manualPrestas.reduce((s, p) => s + (p.duree || 0), 0);
+    const dureeNA = manualNAs.reduce((s, n) => s + Math.round((n.duree / 10) * (n.qte || 10)), 0);
+    const dureeTotal = dureeP + dureeNA;
+    function fmt(m) { const h = Math.floor(m / 60), mn = m % 60; return h > 0 ? h + "h" + (mn > 0 ? String(mn).padStart(2, "0") : "") : mn + " min"; }
+    let lines = manualPrestas.map(p =>
+      "<div style='display:flex;justify-content:space-between;padding:3px 0;font-size:11px;'><span>" + p.label + "</span><span style='color:var(--or);'>" + p.prix + "€</span></div>"
+    ).join("");
+    manualNAs.forEach(n => {
+      const q = n.qte || 10;
+      const pNA = manualPrixNA(n);
+      const label = n.label + (q < 10 ? " (" + q + " doigt" + (q > 1 ? "s" : "") + ")" : " (10 doigts)");
+      lines += "<div style='display:flex;justify-content:space-between;padding:3px 0;font-size:11px;'><span>" + label + "</span><span style='color:var(--or);'>" + manualFmtPrix(pNA) + "</span></div>";
+    });
+    lines += "<div style='display:flex;justify-content:space-between;padding:6px 0 0;border-top:1px solid var(--border2);font-size:12px;font-weight:600;'>" +
+      "<span>Total · " + fmt(dureeTotal) + "</span><span style='color:var(--or);'>" + manualFmtPrix(total) + "</span></div>";
+    el.innerHTML = lines;
+  }
+
   const btnSaveRdv = document.getElementById("btn-manual-rdv-save");
   if (btnSaveRdv) {
     btnSaveRdv.addEventListener("click", async () => {
       const dateVal = document.getElementById("manual-rdv-date").value;
       const heureVal = document.getElementById("manual-rdv-heure").value.trim();
-      const prestaVal = prestaSelect.value;
-      const prixVal = prixInput.value.trim();
-      if (!dateVal || !heureVal || !prestaVal) {
-        showToast("Remplissez la date, l'heure et la prestation."); return;
+      if (!dateVal || !heureVal) {
+        showToast("Remplissez la date et l'heure."); return;
       }
+      if (!manualPrestas.length) {
+        showToast("Sélectionnez au moins une prestation."); return;
+      }
+      const labels = manualPrestas.map(x => x.label);
+      manualNAs.forEach(n => labels.push(n.label + (n.qte < 10 ? " (" + n.qte + "d)" : "")));
+      const prestaVal = labels.join(" + ");
+      const totalP = manualPrestas.reduce((s, p) => s + (p.prix || 0), 0);
+      const totalNA = manualNAs.reduce((s, n) => s + manualPrixNA(n), 0);
+      const total = parseFloat((totalP + totalNA).toFixed(2));
+      const dureeP = manualPrestas.reduce((s, p) => s + (p.duree || 0), 0);
+      const dureeNA = manualNAs.reduce((s, n) => s + Math.round((n.duree / 10) * (n.qte || 10)), 0);
+      const duree = dureeP + dureeNA;
       const d = new Date(dateVal);
       const jour = d.getDate(), mois = d.getMonth(), annee = d.getFullYear();
-      const joursSemaine = ["dim.","lun.","mar.","mer.","jeu.","ven.","sam."];
-      const moisNoms = ["jan.","fév.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+      const joursSemaine = ["dim.", "lun.", "mar.", "mer.", "jeu.", "ven.", "sam."];
+      const moisNoms = ["jan.", "fév.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
       const dateStr = joursSemaine[d.getDay()] + " " + jour + " " + moisNoms[mois] + " " + annee;
 
       btnSaveRdv.textContent = "Enregistrement…";
@@ -4063,13 +4228,12 @@ async function openFicheCliente(uid) {
           date: dateStr,
           jour: jour, mois: mois, annee: annee,
           heure: heureVal,
-          duree: 0,
-          prix: prixVal ? prixVal + "€" : "",
+          duree: duree,
+          prix: manualFmtPrix(total),
           statut: "confirme",
           ts: serverTimestamp()
         });
         showToast("✦ RDV ajouté !");
-        // Rafraîchir les données et la fiche
         const rdvsSnap = await getDocs(query(collection(db, "rdvs"), where("uid", "==", uid)));
         const updatedRdvs = rdvsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
         const ci = allClientesData.find(x => x.uid === uid);
