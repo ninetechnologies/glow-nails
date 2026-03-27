@@ -2668,6 +2668,7 @@ window.marionConfirme = async function(rdvId, slotId) {
   try {
     const rdv = marionRdvsAll.find(r => r.id === rdvId);
     const duree = rdv && rdv.duree ? rdv.duree : 0;
+    console.log("[DEBUG] rdvId:", rdvId, "rdv found:", rdv, "duree:", duree);
     await updateDoc(doc(db, "rdvs", rdvId), { statut: "confirme" });
     await setDoc(doc(db, "slots", slotId), { pris: true, statut: "confirme", duree: duree, ts: serverTimestamp() });
     showToast("✦ RDV confirmé !");
