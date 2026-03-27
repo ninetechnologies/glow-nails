@@ -2480,7 +2480,7 @@ window.confirmRdv = async function() {
         throw new Error("CRENEAU_PRIS");
       }
       // Réserver le créneau atomiquement
-      tx.set(slotRef, { pris: true, statut: "en_attente", uid: currentUser.uid, ts: serverTimestamp() });
+      tx.set(slotRef, { pris: true, statut: "en_attente", uid: currentUser.uid, duree: duree, ts: serverTimestamp() });
     });
   } catch(e) {
     if (e.message === "CRENEAU_PRIS") {
@@ -2666,8 +2666,10 @@ function renderDashboard(rdvs, today) {
 // ── Marion : confirmer un RDV ───────────────────────
 window.marionConfirme = async function(rdvId, slotId) {
   try {
+    const rdv = marionRdvsAll.find(r => r.id === rdvId);
+    const duree = rdv && rdv.duree ? rdv.duree : 0;
     await updateDoc(doc(db, "rdvs", rdvId), { statut: "confirme" });
-    await setDoc(doc(db, "slots", slotId), { pris: true, statut: "confirme", ts: serverTimestamp() });
+    await setDoc(doc(db, "slots", slotId), { pris: true, statut: "confirme", duree: duree, ts: serverTimestamp() });
     showToast("✦ RDV confirmé !");
   } catch(e) { showToast("Erreur lors de la confirmation."); }
 };
@@ -3145,7 +3147,29 @@ async function loadSlots() {
   const q = query(collection(db, "slots"), where("pris", "==", true));
   const snap = await getDocs(q);
   slotsCache = {};
-  snap.docs.forEach(d => { slotsCache[d.id] = true; });
+  const all = creneauxData.length ? creneauxData : ["9h00","10h00","11h30","14h00","15h30","17h00"];
+  snap.docs.forEach(d => {
+    slotsCache[d.id] = true;
+    const duree = d.data().duree || 0;
+    if (duree <= 0) return;
+    // Parse slot id: "YYYY-M-D-Hmm" → extract date prefix + start time
+    const parts = d.id.split("-");
+    if (parts.length < 4) return;
+    const prefix = parts[0] + "-" + parts[1] + "-" + parts[2] + "-";
+    const startRaw = parts[3]; // e.g. "900", "1130", "1400"
+    const startH = startRaw.length <= 3 ? parseInt(startRaw.charAt(0)) : parseInt(startRaw.substring(0, 2));
+    const startM = startRaw.length <= 3 ? parseInt(startRaw.substring(1)) : parseInt(startRaw.substring(2));
+    const startMin = startH * 60 + startM;
+    const endMin = startMin + duree;
+    // Block all créneaux that start within [startMin, endMin)
+    all.forEach(c => {
+      const [ch, cm] = c.split("h").map(Number);
+      const cMin = ch * 60 + (cm || 0);
+      if (cMin > startMin && cMin < endMin) {
+        slotsCache[prefix + c.replace("h", "")] = true;
+      }
+    });
+  });
 }
 
 function isSlotPris(heure) {
