@@ -3157,37 +3157,6 @@ async function loadSlots() {
   const snap = await getDocs(q);
   slotsCache = {};
   snap.docs.forEach(d => { slotsCache[d.id] = true; });
-
-  // Bloquer les créneaux couverts par la durée des RDVs du jour sélectionné
-  // Ex : RDV 9h00 duree 90min → bloque aussi 10h00 si < 10h30
-  try {
-    const rdvQ = query(
-      collection(db, "rdvs"),
-      where("jour",   "==", selDay),
-      where("mois",   "==", calM),
-      where("annee",  "==", calY)
-    );
-    const rdvSnap = await getDocs(rdvQ);
-    const all = creneauxData.length ? creneauxData : ["9h00","10h00","11h30","14h00","15h30","17h00"];
-    rdvSnap.docs.forEach(d => {
-      const rdv = d.data();
-      if (rdv.statut === "annule") return;
-      if (!rdv.heure || !rdv.duree) return;
-      const [h, m] = rdv.heure.replace("h", ":").split(":").map(Number);
-      const startMin = h * 60 + (m || 0);
-      const endMin   = startMin + rdv.duree;
-      all.forEach(c => {
-        const [ch, cm] = c.replace("h", ":").split(":").map(Number);
-        const cMin = ch * 60 + (cm || 0);
-        // Bloquer tout créneau qui démarre PENDANT un RDV en cours (hors le créneau de départ, déjà marqué)
-        if (cMin > startMin && cMin < endMin) {
-          slotsCache[calY + "-" + calM + "-" + selDay + "-" + c.replace("h", "")] = true;
-        }
-      });
-    });
-  } catch(e) {
-    console.warn("[loadSlots] Impossible d'étendre les durées:", e);
-  }
 }
 
 function isSlotPris(heure) {
