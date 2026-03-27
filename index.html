@@ -3148,7 +3148,13 @@ async function loadSlots() {
   const q = query(collection(db, "slots"), where("pris", "==", true));
   const snap = await getDocs(q);
   slotsCache = {};
-  const all = creneauxData.length ? creneauxData : ["9h00","10h00","11h30","14h00","15h30","17h00"];
+  let all = ["9h00","10h00","11h30","14h00","15h30","17h00"];
+  try {
+    const cSnap = await getDoc(doc(db, "settings", "creneaux"));
+    if (cSnap.exists() && cSnap.data().liste && cSnap.data().liste.length) {
+      all = cSnap.data().liste;
+    }
+  } catch(e) { /* fallback aux créneaux par défaut */ }
   snap.docs.forEach(d => {
     slotsCache[d.id] = true;
     const duree = d.data().duree || 0;
