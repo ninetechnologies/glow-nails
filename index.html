@@ -1405,7 +1405,7 @@ html, body {
     <button class="rgpd-modal-close" onclick="this.closest('.rgpd-modal').style.display='none'">&times;</button>
     <h2>Politique de confidentialité</h2>
     <h3>Responsable du traitement</h3>
-    <p>Marion Goarin – Glow Nails<br>Saint-Gaudens (31800)<br>Contact : glownails.contact31@gmail.com</p>
+    <p>Marion Goarin – Glow Nails<br>Saint-Gaudens (31800)<br>Contact : <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="9dfaf1f2eaf3fcf4f1eeb3fef2f3e9fcfee9aeacddfaf0fcf4f1b3fef2f0">[email&#160;protected]</a></p>
     <h3>Données collectées</h3>
     <ul>
       <li>Prénom et nom</li>
@@ -1421,7 +1421,7 @@ html, body {
     <p>Les données sont conservées 3 ans après le dernier rendez-vous. Passé ce délai, elles sont automatiquement supprimées.</p>
     <h3>Vos droits</h3>
     <p>Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, de suppression, de limitation et de portabilité de vos données. Pour exercer ces droits, contactez :</p>
-    <p><strong>glownails.contact31@gmail.com</strong></p>
+    <p><strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b3d4dfdcc4ddd2dadfc09dd0dcddc7d2d0c78082f3d4ded2dadf9dd0dcde">[email&#160;protected]</a></strong></p>
     <h3>Hébergement</h3>
     <p>Les données sont hébergées par Google Firebase (serveurs UE). Politique de confidentialité Google : <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">policies.google.com/privacy</a></p>
   </div>
@@ -1445,7 +1445,7 @@ html, body {
     <h3>Responsabilité</h3>
     <p>Glow Nails s'efforce d'assurer la disponibilité de l'application mais ne garantit pas un fonctionnement sans interruption.</p>
     <h3>Contact</h3>
-    <p>Pour toute question : <strong>glownails.contact31@gmail.com</strong></p>
+    <p>Pour toute question : <strong><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="41262d2e362f20282d326f222e2f35202235727001262c20282d6f222e2c">[email&#160;protected]</a></strong></p>
   </div>
 </div>
 
@@ -2001,7 +2001,7 @@ html, body {
   </div><!-- /dash-content -->
 </div>
 
-<script type="module">
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="module">
 // ═══════════════════════════════════════════════════════
 //  FIREBASE — Auth + Firestore
 // ═══════════════════════════════════════════════════════
@@ -2096,15 +2096,21 @@ onAuthStateChanged(auth, async (fbUser) => {
       // Charger/créer le profil Firestore
       const uRef = doc(db, "users", fbUser.uid);
       const uSnap = await getDoc(uRef);
-      if (!uSnap.exists()) {
+      if (!uSnap.exists() || !uSnap.data().nom) {
+        // Crée ou répare une fiche vide (race condition inscription)
         const prenom = (fbUser.displayName || fbUser.email.split("@")[0]).split(" ")[0];
         const nom    = fbUser.displayName || prenom;
-        userProfile  = {
-          uid: fbUser.uid, email: fbUser.email,
-          nom, prenom,
-          depuis: new Date().toLocaleDateString("fr-FR", {month:"short", year:"numeric"})
+        const patch  = {
+          uid:    fbUser.uid,
+          email:  fbUser.email,
+          nom,
+          prenom,
+          depuis: uSnap.exists()
+            ? (uSnap.data().depuis || new Date().toLocaleDateString("fr-FR", {month:"short", year:"numeric"}))
+            : new Date().toLocaleDateString("fr-FR", {month:"short", year:"numeric"})
         };
-        await setDoc(uRef, userProfile);
+        await setDoc(uRef, patch, { merge: true });
+        userProfile = { ...(uSnap.exists() ? uSnap.data() : {}), ...patch };
       } else {
         userProfile = uSnap.data();
       }
@@ -2169,11 +2175,16 @@ window.doRegister = async function() {
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, pwd);
     await updateProfile(cred.user, { displayName: nom });
-    // Stocker le consentement RGPD dans le profil
+    // Stocker le profil complet + consentement RGPD
     await setDoc(doc(db, "users", cred.user.uid), {
+      uid:         cred.user.uid,
+      email:       email,
+      nom:         nom,
+      prenom:      nom.split(" ")[0],
+      depuis:      new Date().toLocaleDateString("fr-FR", {month:"short", year:"numeric"}),
       rgpdConsent: true,
-      rgpdDate: new Date().toISOString()
-    }, { merge: true });
+      rgpdDate:    new Date().toISOString()
+    });
     // Email de bienvenue (non bloquant)
     const prenom = nom.split(" ")[0];
     try {
@@ -5441,22 +5452,4 @@ document.addEventListener("DOMContentLoaded", () => {
     const vInsc = document.getElementById("view-inscription");
     const vMar  = document.getElementById("view-marion");
     if (vMar  && vMar.style.display  !== "none") window.doLoginMarion?.();
-    else if (vInsc && vInsc.style.display !== "none") window.doRegister?.();
-    else if (vConn && vConn.style.display !== "none") window.doLogin?.();
-  });
-});
-
-</script>
-
-<!-- Service Worker -->
-<script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("service-worker.js")
-      .then(r => console.log("SW registered:", r.scope))
-      .catch(e => console.error("SW registration failed:", e));
-  });
-}
-</script>
-</body>
-</html>
+    else i
