@@ -2463,11 +2463,59 @@ window.confirmRdv = async function() {
   const months = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
   const dateStr = selDay + " " + months[calM] + " " + calY;
 
+  const [crH24, crM24] = selCr.split("h").map(Number);
+  const rdvDateTime = new Date(calY, calM, selDay, crH24, crM24 || 0);
+  const minDateTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  if (rdvDateTime < minDateTime) {
+    showToast("⚠ La réservation doit être effectuée au moins 24h à l'avance.");
+    return;
+  }
+
   // Vérifier doublon sur son propre compte
   const dejaReserve = rdvsCache.find(r =>
     r.statut !== "annule" && r.jour === selDay && r.mois === calM && r.annee === calY
   );
   if (dejaReserve) { showToast("⚠ Vous avez déjà un RDV ce jour."); return; }
+
+  // ── PATCH 2 : Anti-chevauchement plage horaire ───
+  const [crHS, crMS] = selCr.split("h").map(Number);
+  const newStart = crHS * 60 + (crMS || 0);
+  const newEnd   = newStart + duree;
+  let allCreneaux = ["9h00","10h00","11h30","14h00","15h30","17h00"];
+  try {
+    const cSnap2 = await getDoc(doc(db, "settings", "creneaux"));
+    if (cSnap2.exists() && cSnap2.data().liste?.length) allCreneaux = cSnap2.data().liste;
+  } catch(e) {}
+  const dayPrefix2 = calY + "-" + calM + "-" + selDay + "-";
+  for (const cr of allCreneaux) {
+    if (cr === selCr) continue;
+    const [ch2, cm2] = cr.split("h").map(Number);
+    const cMin2 = ch2 * 60 + (cm2 || 0);
+    if (cMin2 > newStart && cMin2 < newEnd) {
+      const coveredId = dayPrefix2 + cr.replace("h","");
+      if (slotsCache[coveredId]) {
+        showToast("⚠ Ce créneau chevauche un autre RDV. Choisissez un autre horaire.");
+        await loadSlots(); renderCr(); return;
+      }
+    }
+  }
+  for (const [slotId, taken] of Object.entries(slotsCache)) {
+    if (!taken || !slotId.startsWith(dayPrefix2)) continue;
+    const rawTime = slotId.replace(dayPrefix2, "");
+    const slotH = rawTime.length <= 3 ? parseInt(rawTime.charAt(0)) : parseInt(rawTime.substring(0,2));
+    const slotM = rawTime.length <= 3 ? parseInt(rawTime.substring(1)) : parseInt(rawTime.substring(2));
+    const slotStart = slotH * 60 + (slotM || 0);
+    try {
+      const sSnap = await getDoc(doc(db, "slots", slotId));
+      if (sSnap.exists()) {
+        const existEnd = slotStart + (sSnap.data().duree || 0);
+        if (newStart >= slotStart && newStart < existEnd) {
+          showToast("⚠ Ce créneau est dans la durée d'un RDV existant. Choisissez un autre horaire.");
+          await loadSlots(); renderCr(); return;
+        }
+      }
+    } catch(e) {}
+  }
 
   // Vérifier conflit créneau avec transaction Firestore (anti-doublon multi-clientes)
   const creneauId = calY + "-" + calM + "-" + selDay + "-" + selCr.replace("h","");
@@ -2665,6 +2713,8 @@ function renderDashboard(rdvs, today) {
 
 // ── Marion : confirmer un RDV ───────────────────────
 window.marionConfirme = async function(rdvId, slotId) {
+  const btn4 = document.querySelector(`[data-action='confirme'][data-id='${rdvId}']`);
+  if (btn4) { btn4.disabled = true; btn4.textContent = "…"; }
   try {
     const rdv = marionRdvsAll.find(r => r.id === rdvId);
     const duree = rdv && rdv.duree ? rdv.duree : 0;
@@ -2672,11 +2722,16 @@ window.marionConfirme = async function(rdvId, slotId) {
     await updateDoc(doc(db, "rdvs", rdvId), { statut: "confirme" });
     await setDoc(doc(db, "slots", slotId), { pris: true, statut: "confirme", duree: duree, ts: serverTimestamp() });
     showToast("✦ RDV confirmé !");
-  } catch(e) { showToast("Erreur lors de la confirmation."); }
+  } catch(e) {
+    if (btn4) { btn4.disabled = false; btn4.textContent = "Confirmer"; }
+    showToast("Erreur lors de la confirmation.");
+  }
 };
 
 // ── Marion : refuser un RDV ──────────────────────────
 window.marionRefuse = async function(rdvId, slotId) {
+  const btn3 = document.querySelector(`[data-action='refuse'][data-id='${rdvId}']`);
+  if (btn3) { btn3.disabled = true; btn3.textContent = "…"; }
   try {
     // Récupérer le RDV pour les infos de prestation et uid
     const rdvSnap = await getDoc(doc(db, "rdvs", rdvId));
@@ -2700,12 +2755,18 @@ window.marionRefuse = async function(rdvId, slotId) {
     }
 
     showToast("RDV refusé — créneau libéré + notification envoyée.");
-  } catch(e) { showToast("Erreur lors du refus."); }
+  } catch(e) {
+    if (btn3) { btn3.disabled = false; btn3.textContent = "Refuser"; }
+    showToast("Erreur lors du refus."); }
 };
 
 // ── Trouver 3 prochains créneaux disponibles ────────
 async function find3NextSlots(rdvData) {
-  const CRENEAUX = ["9h00","10h00","14h00","15h30"];
+  let CRENEAUX = ["9h00","10h00","11h30","14h00","15h30","17h00"];
+  try {
+    const cSnap3 = await getDoc(doc(db, "settings", "creneaux"));
+    if (cSnap3.exists() && cSnap3.data().liste?.length) CRENEAUX = cSnap3.data().liste;
+  } catch(e) {}
   const results = [];
   const now = new Date();
   let checkDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
@@ -3187,7 +3248,7 @@ function isSlotPris(heure) {
 function refreshCalDots() {
   const now = new Date();
   window._userRdvDays = rdvsCache
-    .filter(r => r.statut === "confirme" && r.mois === calM && r.annee === calY)
+    .filter(r => (r.statut === "confirme" || r.statut === "en_attente") && r.mois === calM && r.annee === calY)
     .map(r => r.jour);
   renderCal();
 }
