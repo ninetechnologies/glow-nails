@@ -3372,12 +3372,16 @@ function renderCr(){
     const pris=isSlotPris(c);
     const passe=isPastSlot(c);
     const horsHoraire = !isCreneauInHoraires(c, horaire);
+    // PATCH 1b : griser visuellement les créneaux < 24h
+    const [crH24b, crM24b] = c.split("h").map(Number);
+    const slotDT = new Date(calY, calM, selDay, crH24b, crM24b || 0);
+    const tropTot = slotDT < new Date(Date.now() + 24 * 60 * 60 * 1000);
     let cls="cr";
-    if(horsHoraire||pris||passe) cls+=" off";
+    if(horsHoraire||pris||passe||tropTot) cls+=" off";
     else if(c===selCr) cls+=" active";
     el.className=cls;
     el.textContent=c+(pris?" ✗":"");
-    if(!horsHoraire&&!pris&&!passe) el.onclick=()=>{selCr=c;renderCr();};
+    if(!horsHoraire&&!pris&&!passe&&!tropTot) el.onclick=()=>{selCr=c;renderCr();};
     grid.appendChild(el);
   });
 }
