@@ -3396,6 +3396,18 @@ function renderPrestas() {
   const compatibles = getCompatibles(selPrestas);
   row.innerHTML = "";
 
+  // PATCH : jour sélectionné doit être >= demain (règle 24h absolue)
+  const _now = new Date();
+  const _tomorrow = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate() + 1);
+  const _selDate  = new Date(calY, calM, selDay);
+  const _dayBlocked = isDayBlocked(calY, calM, selDay);
+  const hasSlot = !_dayBlocked && _selDate >= _tomorrow;
+
+  if (!hasSlot) {
+    row.innerHTML = "<div style='font-size:12px;color:var(--text3);padding:8px 4px;'>Aucun créneau disponible ce jour — choisissez une autre date.</div>";
+    return;
+  }
+
   PRESTAS.forEach(p => {
     const isSelected   = selPrestas.includes(p);
     const isCompatible = isSelected || compatibles.includes(p);
