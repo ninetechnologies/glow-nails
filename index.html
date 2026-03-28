@@ -3599,7 +3599,8 @@ function updateSummary() {
   // PATCH : afficher bouton seulement si presta + créneau sélectionnés
   const btnConfirm = document.querySelector(".btn-confirm");
   if (btnConfirm) {
-    btnConfirm.style.display = (selPrestas.length > 0 && selCr) ? "block" : "none";
+    const creneauActif = document.querySelector(".cr.active");
+    btnConfirm.style.display = (selPrestas.length > 0 && creneauActif) ? "block" : "none";
   }
 
   if (!selPrestas.length) {
