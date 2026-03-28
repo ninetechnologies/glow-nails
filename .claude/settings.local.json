@@ -9,7 +9,12 @@
       "Bash(where gcloud)",
       "Bash(cmd //c \"where gcloud\")",
       "Read(//c/Program Files \\(x86\\)/Google/Cloud SDK/google-cloud-sdk/bin/**)",
-      "Read(//c/Users/ordi/AppData/Local/Google/Cloud SDK/google-cloud-sdk/bin/**)"
+      "Read(//c/Users/ordi/AppData/Local/Google/Cloud SDK/google-cloud-sdk/bin/**)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(git push:*)",
+      "Bash(git revert:*)"
     ]
   }
 }
