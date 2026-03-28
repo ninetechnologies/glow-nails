@@ -3316,7 +3316,7 @@ window.selDate = function(d){
   if (builder) builder.style.display = "";
   const summary = document.getElementById("rdv-summary");
   if (summary) summary.style.display = "";
-  loadSlots().then(renderCal).then(renderCr);
+  loadSlots().then(renderCal).then(renderCr).then(renderPrestas).then(updateSummary);
 };
 
 window.changeMonth = function(dir){
