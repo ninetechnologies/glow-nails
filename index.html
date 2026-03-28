@@ -721,7 +721,7 @@ html, body {
 .cr:not(.off):not(.active):hover { background: var(--bg2); }
 
 .btn-confirm {
-  display: block;
+  display: none;
   width: calc(100% - 32px);
   margin: 0 16px 16px;
   padding: 14px; border-radius: 100px;
@@ -3595,6 +3595,12 @@ function updateSummary() {
   const resumeEl = document.getElementById("rdv-resume-text");
   const detailEl  = document.getElementById("rdv-detail");
   const linesEl   = document.getElementById("rdv-detail-lines");
+
+  // PATCH : afficher bouton seulement si presta + créneau sélectionnés
+  const btnConfirm = document.querySelector(".btn-confirm");
+  if (btnConfirm) {
+    btnConfirm.style.display = (selPrestas.length > 0 && selCr) ? "block" : "none";
+  }
 
   if (!selPrestas.length) {
     if (resumeEl) { resumeEl.style.display = "block"; resumeEl.textContent = "Sélectionnez une prestation"; }
