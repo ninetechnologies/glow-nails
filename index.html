@@ -4382,6 +4382,15 @@ async function openFicheCliente(uid) {
           statut: "confirme",
           ts: serverTimestamp()
         });
+        // Bloquer le créneau dans la collection slots (même format que marionConfirme)
+        const slotId = annee + "-" + mois + "-" + jour + "-" + heureVal.replace("h","");
+        await setDoc(doc(db, "slots", slotId), {
+          pris: true,
+          statut: "confirme",
+          uid: uid,
+          duree: duree,
+          ts: serverTimestamp()
+        });
         showToast("✦ RDV ajouté !");
         const rdvsSnap = await getDocs(query(collection(db, "rdvs"), where("uid", "==", uid)));
         const updatedRdvs = rdvsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
