@@ -4489,6 +4489,10 @@ async function ficheAnnulerRdv(rdvId, clienteUid, statut) {
       uid: clienteUid, type: "rdv_annule", message: msg, lu: false, ts: serverTimestamp()
     });
     showToast(statut === "desistement" ? "Désistement enregistré." : "RDV annulé + notification envoyée.");
+    const rdvsSnap = await getDocs(query(collection(db, "rdvs"), where("uid", "==", clienteUid)));
+    const updatedRdvs = rdvsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const ci = allClientesData.find(x => x.uid === clienteUid);
+    if (ci) ci.userRdvs = updatedRdvs;
     openFicheCliente(clienteUid);
   } catch(e) { showToast("Erreur annulation."); }
 }
