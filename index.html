@@ -4478,8 +4478,12 @@ async function ficheAnnulerRdv(rdvId, clienteUid, statut) {
     if (!rdvSnap.exists()) return;
     const r = rdvSnap.data();
     await updateDoc(doc(db, "rdvs", rdvId), { statut });
-    // Libérer le créneau
-    const slotId = r.annee + "-" + r.mois + "-" + r.jour + "-" + r.heure.replace("h","");
+    // Libérer le créneau (format compatible "09:00" et "9h00")
+    const [hh, mm] = r.heure.includes(":")
+      ? r.heure.split(":")
+      : r.heure.replace("h","").match(/^(\d+)(\d{2})$/).slice(1);
+    const slotHeure = String(parseInt(hh)) + (mm || "00");
+    const slotId = r.annee + "-" + r.mois + "-" + r.jour + "-" + slotHeure;
     await setDoc(doc(db, "slots", slotId), { pris: false, statut: "libre", ts: serverTimestamp() });
     // Notifier la cliente
     const msg = statut === "desistement"
