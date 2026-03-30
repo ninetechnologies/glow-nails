@@ -4405,8 +4405,10 @@ async function openFicheCliente(uid) {
           statut: "confirme",
           ts: serverTimestamp()
         });
-        // Bloquer le créneau dans la collection slots (même format que marionConfirme)
-        const slotId = annee + "-" + mois + "-" + jour + "-" + heureVal.replace("h","");
+        // Bloquer le créneau dans la collection slots
+        // Convertir "09:00" → "900", "14:00" → "1400" (même format que isSlotPris côté cliente)
+        const [hh, mm] = heureVal.split(":");
+        const slotId = annee + "-" + mois + "-" + jour + "-" + String(parseInt(hh)) + mm;
         await setDoc(doc(db, "slots", slotId), {
           pris: true,
           statut: "confirme",
