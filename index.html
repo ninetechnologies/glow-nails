@@ -2252,6 +2252,7 @@ async function enterCliente() {
   refreshEspace();
   refreshLoyalty();
   startRdvsListener();
+  startSlotsListener();
   startPostsListener();
   initInspiCliente();
   selDay = new Date().getDate();
@@ -3211,32 +3212,22 @@ function isPastDay(d){
 
 // Créneaux déjà pris dans Firestore (slots)
 let slotsCache = {};
+let unsubSlots = null;
 
-async function loadSlots() {
-  const q = query(collection(db, "slots"), where("pris", "==", true));
-  const snap = await getDocs(q);
+function buildSlotsCache(snap, all) {
   slotsCache = {};
-  let all = ["9h00","10h00","11h30","14h00","15h30","17h00"];
-  try {
-    const cSnap = await getDoc(doc(db, "settings", "creneaux"));
-    if (cSnap.exists() && cSnap.data().liste && cSnap.data().liste.length) {
-      all = cSnap.data().liste;
-    }
-  } catch(e) { /* fallback aux créneaux par défaut */ }
   snap.docs.forEach(d => {
     slotsCache[d.id] = true;
     const duree = d.data().duree || 0;
     if (duree <= 0) return;
-    // Parse slot id: "YYYY-M-D-Hmm" → extract date prefix + start time
     const parts = d.id.split("-");
     if (parts.length < 4) return;
     const prefix = parts[0] + "-" + parts[1] + "-" + parts[2] + "-";
-    const startRaw = parts[3]; // e.g. "900", "1130", "1400"
+    const startRaw = parts[3];
     const startH = startRaw.length <= 3 ? parseInt(startRaw.charAt(0)) : parseInt(startRaw.substring(0, 2));
     const startM = startRaw.length <= 3 ? parseInt(startRaw.substring(1)) : parseInt(startRaw.substring(2));
     const startMin = startH * 60 + startM;
     const endMin = startMin + duree;
-    // Block all créneaux that start within [startMin, endMin)
     all.forEach(c => {
       const [ch, cm] = c.split("h").map(Number);
       const cMin = ch * 60 + (cm || 0);
@@ -3245,6 +3236,38 @@ async function loadSlots() {
       }
     });
   });
+}
+
+// Listener temps réel sur slots — initialisé une seule fois
+function startSlotsListener() {
+  if (unsubSlots) return;
+  const q = query(collection(db, "slots"), where("pris", "==", true));
+  let all = ["9h00","10h00","11h30","14h00","15h30","17h00"];
+  try {
+    getDoc(doc(db, "settings", "creneaux")).then(cSnap => {
+      if (cSnap.exists() && cSnap.data().liste && cSnap.data().liste.length) {
+        all = cSnap.data().liste;
+      }
+    });
+  } catch(e) { /* fallback aux créneaux par défaut */ }
+  unsubSlots = onSnapshot(q, (snap) => {
+    buildSlotsCache(snap, all);
+    renderCr();
+  });
+}
+
+// Fallback ponctuel (conservé pour les appels existants)
+async function loadSlots() {
+  const q = query(collection(db, "slots"), where("pris", "==", true));
+  const snap = await getDocs(q);
+  let all = ["9h00","10h00","11h30","14h00","15h30","17h00"];
+  try {
+    const cSnap = await getDoc(doc(db, "settings", "creneaux"));
+    if (cSnap.exists() && cSnap.data().liste && cSnap.data().liste.length) {
+      all = cSnap.data().liste;
+    }
+  } catch(e) { /* fallback aux créneaux par défaut */ }
+  buildSlotsCache(snap, all);
 }
 
 function isSlotPris(heure) {
