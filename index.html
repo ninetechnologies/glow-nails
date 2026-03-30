@@ -4366,9 +4366,16 @@ async function openFicheCliente(uid) {
   if (btnSaveRdv) {
     btnSaveRdv.addEventListener("click", async () => {
       const dateVal = document.getElementById("manual-rdv-date").value;
-      const heureVal = document.getElementById("manual-rdv-heure").value.trim();
+      let heureVal = document.getElementById("manual-rdv-heure").value.trim();
       if (!dateVal || !heureVal) {
         showToast("Remplissez la date et l'heure."); return;
+      }
+      // Normaliser heureVal → format "HH:MM" interne
+      if (heureVal.includes(":")) {
+        // déjà "09:00"
+      } else {
+        const parts = heureVal.toLowerCase().split("h");
+        heureVal = parts[0].padStart(2,"0") + ":" + (parts[1] || "00").padStart(2,"0");
       }
       if (!manualPrestas.length) {
         showToast("Sélectionnez au moins une prestation."); return;
