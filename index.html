@@ -1819,6 +1819,16 @@ html, body {
       <button id="btn-unblock-day" style="flex:1;background:none;border:1px solid var(--border);border-radius:100px;padding:8px 14px;font-size:11px;cursor:pointer;color:var(--text3);font-weight:400;display:none;">✓ Débloquer cette journée</button>
     </div>
 
+    <!-- Bloquer un créneau -->
+    <div style="margin:0 16px 16px;">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:8px;">Bloquer un créneau</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <select id="select-creneau-block" style="flex:1;min-width:100px;padding:8px 12px;border:1px solid var(--border2);border-radius:100px;font-size:13px;font-family:inherit;color:var(--text);background:var(--bg);cursor:pointer;"></select>
+        <button id="btn-block-creneau" style="flex:1;background:none;border:1px solid var(--border);border-radius:100px;padding:8px 14px;font-size:11px;cursor:pointer;color:var(--text3);font-weight:400;">🚫 Bloquer</button>
+        <button id="btn-unblock-creneau" style="flex:1;background:none;border:1px solid var(--border);border-radius:100px;padding:8px 14px;font-size:11px;cursor:pointer;color:var(--text3);font-weight:400;display:none;">✓ Débloquer</button>
+      </div>
+    </div>
+
     <!-- Google Calendar -->
     <div style="margin:0 16px 16px;background:var(--white);border-radius:var(--radius);border:1px solid var(--border2);box-shadow:var(--shadow);padding:14px 16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -2898,6 +2908,7 @@ function renderMarionDayRdvs() {
   const btnUnblock = document.getElementById("btn-unblock-day");
   if (btnBlock) btnBlock.style.display = isBlocked ? "none" : "";
   if (btnUnblock) btnUnblock.style.display = isBlocked ? "" : "none";
+  populateCreneauSelect();
 
   // RDV clientes
   const rdvJour = marionRdvsAll
@@ -3033,6 +3044,53 @@ async function unblockDay() {
     await deleteDoc(doc(db, "blocked", dayKey));
     showToast("✓ Journée débloquée !");
   } catch(e) { showToast("Erreur déblocage."); }
+}
+
+// ── Bloquer / débloquer un créneau individuel ───────
+async function updateCreneauBlockUI() {
+  const sel = document.getElementById("select-creneau-block");
+  const btnB = document.getElementById("btn-block-creneau");
+  const btnU = document.getElementById("btn-unblock-creneau");
+  if (!sel || !sel.value) return;
+  const slotId = mCalY + "-" + mCalM + "-" + mSelDay + "-" + sel.value.replace("h","");
+  const snap = await getDoc(doc(db, "slots", slotId));
+  const bloque = snap.exists() && snap.data().pris === true && snap.data().statut === "bloque_marion";
+  if (btnB) btnB.style.display = bloque ? "none" : "";
+  if (btnU) btnU.style.display = bloque ? "" : "none";
+}
+
+async function blockCreneau() {
+  const sel = document.getElementById("select-creneau-block");
+  if (!sel || !sel.value) { showToast("Sélectionnez un créneau."); return; }
+  const slotId = mCalY + "-" + mCalM + "-" + mSelDay + "-" + sel.value.replace("h","");
+  try {
+    await setDoc(doc(db, "slots", slotId), { pris: true, statut: "bloque_marion", ts: serverTimestamp() });
+    showToast("🚫 Créneau " + sel.value + " bloqué !");
+    await loadSlots?.();
+    updateCreneauBlockUI();
+    if (typeof renderCr === "function") renderCr();
+  } catch(e) { showToast("Erreur blocage créneau."); }
+}
+
+async function unblockCreneau() {
+  const sel = document.getElementById("select-creneau-block");
+  if (!sel || !sel.value) { showToast("Sélectionnez un créneau."); return; }
+  const slotId = mCalY + "-" + mCalM + "-" + mSelDay + "-" + sel.value.replace("h","");
+  try {
+    await setDoc(doc(db, "slots", slotId), { pris: false, statut: "libre", ts: serverTimestamp() });
+    showToast("✓ Créneau " + sel.value + " débloqué !");
+    await loadSlots?.();
+    updateCreneauBlockUI();
+    if (typeof renderCr === "function") renderCr();
+  } catch(e) { showToast("Erreur déblocage créneau."); }
+}
+
+function populateCreneauSelect() {
+  const sel = document.getElementById("select-creneau-block");
+  if (!sel) return;
+  const liste = (creneauxData && creneauxData.length) ? creneauxData : ["9h00","10h00","11h30","14h00","15h30","17h00"];
+  sel.innerHTML = liste.map(c => "<option value='" + c + "'>" + c + "</option>").join("");
+  updateCreneauBlockUI();
 }
 
 // ── Vérifier si un jour est bloqué (pour cliente) ───
@@ -5593,6 +5651,12 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnBlockDay) btnBlockDay.addEventListener("click", blockDay);
   const btnUnblockDay = document.getElementById("btn-unblock-day");
   if (btnUnblockDay) btnUnblockDay.addEventListener("click", unblockDay);
+  const btnBlockCreneau = document.getElementById("btn-block-creneau");
+  if (btnBlockCreneau) btnBlockCreneau.addEventListener("click", blockCreneau);
+  const btnUnblockCreneau = document.getElementById("btn-unblock-creneau");
+  if (btnUnblockCreneau) btnUnblockCreneau.addEventListener("click", unblockCreneau);
+  const selCreneauBlock = document.getElementById("select-creneau-block");
+  if (selCreneauBlock) selCreneauBlock.addEventListener("change", updateCreneauBlockUI);
 
   // Google Calendar connect/disconnect
   const btnGcalC = document.getElementById("btn-gcal-connect");
