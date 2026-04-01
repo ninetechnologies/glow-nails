@@ -4370,12 +4370,12 @@ async function openFicheCliente(uid) {
       if (!dateVal || !heureVal) {
         showToast("Remplissez la date et l'heure."); return;
       }
-      // Normaliser heureVal → format "HH:MM" interne
+      // Normaliser heureVal → format "Xh00" (cohérent avec booking cliente)
       if (heureVal.includes(":")) {
-        // déjà "09:00"
-      } else {
-        const parts = heureVal.toLowerCase().split("h");
-        heureVal = parts[0].padStart(2,"0") + ":" + (parts[1] || "00").padStart(2,"0");
+        const parts = heureVal.split(":");
+        heureVal = parseInt(parts[0]) + "h" + (parts[1] || "00").padStart(2,"0");
+      } else if (!heureVal.includes("h")) {
+        heureVal = heureVal + "h00";
       }
       if (!manualPrestas.length) {
         showToast("Sélectionnez au moins une prestation."); return;
@@ -4412,10 +4412,15 @@ async function openFicheCliente(uid) {
           statut: "confirme",
           ts: serverTimestamp()
         });
-        // Bloquer le créneau dans la collection slots
-        // Convertir "09:00" → "900", "14:00" → "1400" (même format que isSlotPris côté cliente)
-        const [hh, mm] = heureVal.split(":");
-        const slotId = annee + "-" + mois + "-" + jour + "-" + String(parseInt(hh)) + mm;
+        // Bloquer le créneau standard le plus proche (≤ heure saisie)
+        const fallbackCreneaux = ["9h00","10h00","11h30","14h00","15h30","17h00"];
+        const listeCreneaux = (creneauxData && creneauxData.length) ? creneauxData : fallbackCreneaux;
+        const [hManuel, mManuel] = heureVal.split("h");
+        const totalMinsManuel = parseInt(hManuel) * 60 + parseInt(mManuel || 0);
+        const toMins = cr => { const [h,m] = cr.split("h"); return parseInt(h)*60 + parseInt(m||0); };
+        const eligibles = listeCreneaux.filter(cr => toMins(cr) <= totalMinsManuel);
+        const creneauBloque = eligibles.length ? eligibles[eligibles.length - 1] : listeCreneaux[0];
+        const slotId = annee + "-" + mois + "-" + jour + "-" + creneauBloque.replace("h","");
         await setDoc(doc(db, "slots", slotId), {
           pris: true,
           statut: "confirme",
@@ -4423,6 +4428,16 @@ async function openFicheCliente(uid) {
           duree: duree,
           ts: serverTimestamp()
         });
+        // Envoyer mail de confirmation à la cliente
+        emailjs.send("service_p8pkbcd", "template_17mjjld", {
+          to_email: c.email,
+          to_name: c.prenom || "Cliente",
+          date: dateStr,
+          heure: heureVal,
+          prestation: prestaVal,
+          salon_name: "Glow Nails",
+          salon_phone: "glownails.contact31@gmail.com"
+        }).catch(err => console.warn("Mail confirmation non envoyé:", err));
         showToast("✦ RDV ajouté !");
         const rdvsSnap = await getDocs(query(collection(db, "rdvs"), where("uid", "==", uid)));
         const updatedRdvs = rdvsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
