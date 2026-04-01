@@ -2002,7 +2002,15 @@ html, body {
       <button class="settings-save-btn" id="btn-save-creneaux">Sauvegarder les créneaux</button>
     </div>
 
-    <!-- Section 4 — Compte Marion -->
+    <!-- Section 4 — Prestations -->
+    <div class="settings-card">
+      <div class="settings-card-title">Prestations disponibles</div>
+      <div class="settings-card-sub">Désactivez une prestation pour la masquer côté cliente.</div>
+      <div id="prestas-toggles" style="display:flex;flex-direction:column;gap:10px;margin-top:12px;"></div>
+      <button class="settings-save-btn" id="btn-save-prestas" style="margin-top:14px;">Sauvegarder</button>
+    </div>
+
+    <!-- Section 5 — Compte Marion -->
     <div class="settings-card">
       <div class="settings-card-title">Mon compte</div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
@@ -2255,7 +2263,7 @@ async function enterCliente() {
 
   // ⚠️ Charger horaires + créneaux AVANT tout rendu calendrier
   try {
-    await Promise.all([loadSettingsHoraires(), loadSettingsCreneaux()]);
+    await Promise.all([loadSettingsHoraires(), loadSettingsCreneaux(), loadSettingsPrestas()]);
   } catch(e) {
     console.error("Chargement settings échoué:", e);
     normalizeHoraires();
@@ -3500,8 +3508,9 @@ function renderPrestas() {
   }
 
   PRESTAS.forEach(p => {
+    const isDisabled   = disabledPrestas.includes(p.id);
     const isSelected   = selPrestas.includes(p);
-    const isCompatible = isSelected || compatibles.includes(p);
+    const isCompatible = !isDisabled && (isSelected || compatibles.includes(p));
     const el = document.createElement("div");
     el.className = "pill" + (isSelected ? " active" : "") + (!isCompatible ? " off" : "");
     el.textContent = p.label;
@@ -3510,7 +3519,7 @@ function renderPrestas() {
     if (!isCompatible) {
       el.style.opacity = "0.35";
       el.style.cursor  = "not-allowed";
-      el.title = getDisabledTooltip(p, selPrestas);
+      el.title = isDisabled ? "Prestation indisponible" : getDisabledTooltip(p, selPrestas);
     } else {
       el.addEventListener("click", () => {
         if (isSelected) {
@@ -4284,15 +4293,16 @@ async function openFicheCliente(uid) {
     const compatibles = getCompatibles(manualPrestas);
     row.innerHTML = "";
     PRESTAS.forEach(p => {
+      const isDisabled = disabledPrestas.includes(p.id);
       const isSel = manualPrestas.includes(p);
-      const isOk = isSel || compatibles.includes(p);
+      const isOk = !isDisabled && (isSel || compatibles.includes(p));
       const el = document.createElement("div");
       el.className = "pill" + (isSel ? " active" : "") + (!isOk ? " off" : "");
       el.textContent = p.label + " · " + p.prix + "€";
       el.style.fontSize = "11px";
       if (!isOk) {
         el.style.opacity = "0.35"; el.style.cursor = "not-allowed";
-        el.title = getDisabledTooltip(p, manualPrestas);
+        el.title = isDisabled ? "Prestation indisponible" : getDisabledTooltip(p, manualPrestas);
       } else {
         el.style.cursor = "pointer";
         el.addEventListener("click", () => {
@@ -5455,6 +5465,44 @@ async function loadSettingsCreneaux() {
   if (el) el.value = creneauxData.join("\n");
 }
 
+// ── Section 4 : Prestations désactivées ──
+let disabledPrestas = [];
+
+async function loadSettingsPrestas() {
+  try {
+    const snap = await getDoc(doc(db, "settings", "prestations"));
+    if (snap.exists() && snap.data().disabled) {
+      disabledPrestas = snap.data().disabled;
+    } else {
+      disabledPrestas = [];
+    }
+  } catch(e) { console.error("loadSettingsPrestas:", e); }
+  renderPrestaToggles();
+}
+
+function renderPrestaToggles() {
+  const container = document.getElementById("prestas-toggles");
+  if (!container) return;
+  container.innerHTML = PRESTAS.map(p => {
+    const isOff = disabledPrestas.includes(p.id);
+    return `<label style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
+      <span style="font-size:13px;color:var(--text);">${p.label}</span>
+      <input type="checkbox" data-presta-id="${p.id}" ${isOff ? "" : "checked"}
+        style="width:16px;height:16px;cursor:pointer;accent-color:var(--or);">
+    </label>`;
+  }).join("");
+}
+
+async function saveSettingsPrestas() {
+  const checkboxes = document.querySelectorAll("[data-presta-id]");
+  disabledPrestas = [];
+  checkboxes.forEach(cb => { if (!cb.checked) disabledPrestas.push(cb.dataset.prestaId); });
+  try {
+    await setDoc(doc(db, "settings", "prestations"), { disabled: disabledPrestas });
+    showToast("✦ Prestations mises à jour !");
+  } catch(e) { showToast("Erreur sauvegarde prestations."); }
+}
+
 async function saveSettingsCreneaux() {
   const btn = document.getElementById("btn-save-creneaux");
   if (btn) { btn.textContent = "Enregistrement…"; btn.disabled = true; }
@@ -5475,7 +5523,7 @@ async function saveSettingsCreneaux() {
 
 // ── Charger tous les réglages ──
 async function loadAllSettings() {
-  await Promise.all([loadSettingsSalon(), loadSettingsHoraires(), loadSettingsCreneaux()]);
+  await Promise.all([loadSettingsSalon(), loadSettingsHoraires(), loadSettingsCreneaux(), loadSettingsPrestas()]);
   // Afficher l'email Marion
   const emailEl = document.getElementById("set-marion-email");
   if (emailEl && currentUser) emailEl.textContent = currentUser.email;
@@ -5684,6 +5732,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnSaveHoraires) btnSaveHoraires.addEventListener("click", saveSettingsHoraires);
   const btnSaveCreneaux = document.getElementById("btn-save-creneaux");
   if (btnSaveCreneaux) btnSaveCreneaux.addEventListener("click", saveSettingsCreneaux);
+  const btnSavePrestas = document.getElementById("btn-save-prestas");
+  if (btnSavePrestas) btnSavePrestas.addEventListener("click", saveSettingsPrestas);
   const btnMarionPwd = document.getElementById("btn-marion-reset-pwd");
   if (btnMarionPwd) btnMarionPwd.addEventListener("click", () => window.marionResetPwd());
   const btnMarionLogout = document.getElementById("btn-marion-logout");
