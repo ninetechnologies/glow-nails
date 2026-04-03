@@ -2384,8 +2384,9 @@ function getUserRdvs() { return rdvsCache; }
 
 function getProchainRdv() {
   const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   return rdvsCache
-    .filter(r => (r.statut === "confirme" || r.statut === "en_attente") && new Date(r.annee, r.mois, r.jour) >= now)
+    .filter(r => (r.statut === "confirme" || r.statut === "en_attente") && new Date(r.annee, r.mois, r.jour) >= todayStart)
     .sort((a,b) => new Date(a.annee,a.mois,a.jour) - new Date(b.annee,b.mois,b.jour))[0] || null;
 }
 
@@ -2521,7 +2522,7 @@ window.confirmRdv = async function() {
     const [ch2, cm2] = cr.split("h").map(Number);
     const cMin2 = ch2 * 60 + (cm2 || 0);
     if (cMin2 > newStart && cMin2 < newEnd) {
-      const coveredId = dayPrefix2 + cr.replace("h","");
+      const coveredId = dayPrefix2 + heureToSlotId(cr);
       if (slotsCache[coveredId]) {
         showToast("⚠ Ce créneau chevauche un autre RDV. Choisissez un autre horaire.");
         await loadSlots(); renderCr(); return;
@@ -2547,7 +2548,7 @@ window.confirmRdv = async function() {
   }
 
   // Vérifier conflit créneau avec transaction Firestore (anti-doublon multi-clientes)
-  const creneauId = calY + "-" + calM + "-" + selDay + "-" + selCr.replace("h","");
+  const creneauId = calY + "-" + calM + "-" + selDay + "-" + heureToSlotId(selCr);
   const slotRef = doc(db, "slots", creneauId);
 
   try {
@@ -2603,7 +2604,7 @@ window.annulerRdv = async function(id) {
     // Libérer le slot
     const rdv = rdvsCache.find(r => r.id === id);
     if (rdv) {
-      const creneauId = rdv.annee + "-" + rdv.mois + "-" + rdv.jour + "-" + rdv.heure.replace("h","");
+      const creneauId = rdv.annee + "-" + rdv.mois + "-" + rdv.jour + "-" + heureToSlotId(rdv.heure);
       await updateDoc(doc(db, "slots", creneauId), { pris: false });
     }
   } catch(e) { console.error("[RDV] Erreur annulation:", e.code || e.message, e); showToast("Erreur lors de l'annulation."); }
@@ -2714,7 +2715,7 @@ function renderDashboard(rdvs, today) {
   if (attenteEl && attenteSection) {
     attenteSection.style.display = enAttente.length ? "block" : "none";
     attenteEl.innerHTML = enAttente.map(r => {
-      const slotId = r.annee + "-" + r.mois + "-" + r.jour + "-" + r.heure.replace("h","");
+      const slotId = r.annee + "-" + r.mois + "-" + r.jour + "-" + heureToSlotId(r.heure);
       return "<div class='dash-rdv' style='border-left:3px solid var(--or);'>" +
         "<div class='dash-time'>" + r.heure + "</div>" +
         "<div class='dash-rdv-info'>" +
@@ -2812,7 +2813,7 @@ async function find3NextSlots(rdvData) {
     // Skip dimanches et jours bloqués
     if (dow !== 0 && !isDayBlocked(y, m, d)) {
       for (const cr of CRENEAUX) {
-        const slotId = y + "-" + m + "-" + d + "-" + cr.replace("h","");
+        const slotId = y + "-" + m + "-" + d + "-" + heureToSlotId(cr);
         if (!slotsPris[slotId]) {
           const months = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
           results.push({ date: d + " " + months[m] + " " + y, heure: cr });
@@ -3060,7 +3061,7 @@ async function updateCreneauBlockUI() {
   const btnB = document.getElementById("btn-block-creneau");
   const btnU = document.getElementById("btn-unblock-creneau");
   if (!sel || !sel.value) return;
-  const slotId = mCalY + "-" + mCalM + "-" + mSelDay + "-" + sel.value.replace("h","");
+  const slotId = mCalY + "-" + mCalM + "-" + mSelDay + "-" + heureToSlotId(sel.value);
   const snap = await getDoc(doc(db, "slots", slotId));
   const bloque = snap.exists() && snap.data().pris === true && snap.data().statut === "bloque_marion";
   if (btnB) btnB.style.display = bloque ? "none" : "";
@@ -3070,7 +3071,7 @@ async function updateCreneauBlockUI() {
 async function blockCreneau() {
   const sel = document.getElementById("select-creneau-block");
   if (!sel || !sel.value) { showToast("Sélectionnez un créneau."); return; }
-  const slotId = mCalY + "-" + mCalM + "-" + mSelDay + "-" + sel.value.replace("h","");
+  const slotId = mCalY + "-" + mCalM + "-" + mSelDay + "-" + heureToSlotId(sel.value);
   try {
     await setDoc(doc(db, "slots", slotId), { pris: true, statut: "bloque_marion", ts: serverTimestamp() });
     showToast("🚫 Créneau " + sel.value + " bloqué !");
@@ -3083,7 +3084,7 @@ async function blockCreneau() {
 async function unblockCreneau() {
   const sel = document.getElementById("select-creneau-block");
   if (!sel || !sel.value) { showToast("Sélectionnez un créneau."); return; }
-  const slotId = mCalY + "-" + mCalM + "-" + mSelDay + "-" + sel.value.replace("h","");
+  const slotId = mCalY + "-" + mCalM + "-" + mSelDay + "-" + heureToSlotId(sel.value);
   try {
     await setDoc(doc(db, "slots", slotId), { pris: false, statut: "libre", ts: serverTimestamp() });
     showToast("✓ Créneau " + sel.value + " débloqué !");
@@ -3339,8 +3340,12 @@ async function loadSlots() {
   buildSlotsCache(snap, all);
 }
 
+function heureToSlotId(heure) {
+  return heure.replace("h", "").replace(":", "");
+}
+
 function isSlotPris(heure) {
-  const id = calY + "-" + calM + "-" + selDay + "-" + heure.replace("h","");
+  const id = calY + "-" + calM + "-" + selDay + "-" + heureToSlotId(heure);
   return !!slotsCache[id];
 }
 
@@ -4491,7 +4496,7 @@ async function openFicheCliente(uid) {
         const toMins = cr => { const [h,m] = cr.split("h"); return parseInt(h)*60 + parseInt(m||0); };
         const eligibles = listeCreneaux.filter(cr => toMins(cr) <= totalMinsManuel);
         const creneauBloque = eligibles.length ? eligibles[eligibles.length - 1] : listeCreneaux[0];
-        const slotId = annee + "-" + mois + "-" + jour + "-" + creneauBloque.replace("h","");
+        const slotId = annee + "-" + mois + "-" + jour + "-" + heureToSlotId(creneauBloque);
         await setDoc(doc(db, "slots", slotId), {
           pris: true,
           statut: "confirme",
@@ -4614,10 +4619,10 @@ async function ficheModifierRdv(rdvId) {
 
   try {
     // Libérer ancien créneau
-    const oldSlotId = r.annee + "-" + r.mois + "-" + r.jour + "-" + r.heure.replace("h","");
+    const oldSlotId = r.annee + "-" + r.mois + "-" + r.jour + "-" + heureToSlotId(r.heure);
     await setDoc(doc(db, "slots", oldSlotId), { pris: false, statut: "libre", ts: serverTimestamp() });
     // Réserver nouveau créneau
-    const newSlotId = na + "-" + newMois + "-" + nj + "-" + newHeure.replace("h","");
+    const newSlotId = na + "-" + newMois + "-" + nj + "-" + heureToSlotId(newHeure);
     await setDoc(doc(db, "slots", newSlotId), { pris: true, statut: "confirme", uid: r.uid, ts: serverTimestamp() });
     // Mettre à jour le RDV
     await updateDoc(doc(db, "rdvs", rdvId), {
