@@ -2124,17 +2124,22 @@ onAuthStateChanged(auth, async (fbUser) => {
       // Charger/créer le profil Firestore
       const uRef = doc(db, "users", fbUser.uid);
       const uSnap = await getDoc(uRef);
-      if (!uSnap.exists()) {
+      const existing = uSnap.exists() ? uSnap.data() : {};
+      // Réparer les fiches incomplètes (race doRegister) : si nom/prenom absents, repeupler
+      if (!existing.nom || !existing.prenom) {
         const prenom = (fbUser.displayName || fbUser.email.split("@")[0]).split(" ")[0];
         const nom    = fbUser.displayName || prenom;
-        userProfile  = {
-          uid: fbUser.uid, email: fbUser.email,
-          nom, prenom,
-          depuis: new Date().toLocaleDateString("fr-FR", {month:"short", year:"numeric"})
+        const patch  = {
+          uid:    fbUser.uid,
+          email:  fbUser.email,
+          nom,
+          prenom,
+          depuis: existing.depuis || new Date().toLocaleDateString("fr-FR", {month:"short", year:"numeric"})
         };
-        await setDoc(uRef, userProfile);
+        await setDoc(uRef, patch, { merge: true });
+        userProfile = { ...existing, ...patch };
       } else {
-        userProfile = uSnap.data();
+        userProfile = existing;
       }
     } catch(e) {
       console.error("Firestore cliente init error:", e);
@@ -2197,13 +2202,20 @@ window.doRegister = async function() {
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, pwd);
     await updateProfile(cred.user, { displayName: nom });
-    // Stocker le consentement RGPD dans le profil
+    // Stocker le profil complet + consentement RGPD en une seule écriture
+    // (évite la race condition avec onAuthStateChanged qui pouvait laisser prenom/nom vides)
+    const prenom = nom.split(" ")[0];
+    const depuis = new Date().toLocaleDateString("fr-FR", {month:"short", year:"numeric"});
     await setDoc(doc(db, "users", cred.user.uid), {
+      uid:         cred.user.uid,
+      email:       email,
+      nom:         nom,
+      prenom:      prenom,
+      depuis:      depuis,
       rgpdConsent: true,
-      rgpdDate: new Date().toISOString()
+      rgpdDate:    new Date().toISOString()
     }, { merge: true });
     // Email de bienvenue (non bloquant)
-    const prenom = nom.split(" ")[0];
     try {
       await emailjs.send("service_p8pkbcd", "template_44nev54", {
         to_email:    email,
@@ -2631,14 +2643,28 @@ function startDashListener() {
   startAgendaListener();
 }
 
+// Helper : nom affichable d'une cliente (fallback si prenom/nom vides)
+// Marion doit toujours pouvoir identifier qui a réservé, même si la fiche est incomplète
+function nomCliente(c) {
+  const p = (c?.prenom || "").trim();
+  const n = (c?.nom || "").trim();
+  const full = (p + " " + n).trim();
+  if (full) return full;
+  if (c?.email) return c.email;
+  if (c?.uid) return "Cliente #" + c.uid.substring(0, 6);
+  return "Cliente";
+}
+
 function renderDashboard(rdvs, today) {
   const todayY = today.getFullYear(), todayM = today.getMonth(), todayD = today.getDate();
   const now = new Date();
 
+  const isRdvActif = r => r.statut !== "refuse" && r.statut !== "annule";
+
   const rdvAuj = rdvs
-    .filter(r => r.jour===todayD && r.mois===todayM && r.annee===todayY)
+    .filter(r => r.jour===todayD && r.mois===todayM && r.annee===todayY && isRdvActif(r))
     .sort((a,b) => a.heure.localeCompare(b.heure));
-  const rdvMois = rdvs.filter(r => r.mois===todayM && r.annee===todayY);
+  const rdvMois = rdvs.filter(r => r.mois===todayM && r.annee===todayY && isRdvActif(r));
 
   // Helper : créneau passé ?
   function heurePassee(heure) {
@@ -2647,8 +2673,8 @@ function renderDashboard(rdvs, today) {
     return rdvDate < now;
   }
 
-  // Stats — on compte les terminés aussi
-  const caAuj = rdvAuj.filter(r => heurePassee(r.heure)).reduce((s,r) => s + parseInt(r.prix||0), 0);
+  // CA aujourd'hui = uniquement RDV confirmés passés (pas en_attente, pas refuse, pas annule)
+  const caAuj = rdvAuj.filter(r => r.statut === "confirme" && heurePassee(r.heure)).reduce((s,r) => s + parseInt(r.prix||0), 0);
   const vals = document.querySelectorAll(".stat-val");
   if (vals[0]) vals[0].textContent = rdvAuj.length;
   if (vals[1]) vals[1].textContent = caAuj + "€";
@@ -2676,7 +2702,7 @@ function renderDashboard(rdvs, today) {
         return "<div class='dash-rdv' style='" + (termine ? "opacity:0.5;" : "border-left:3px solid var(--or-light);") + "'>" +
           "<div class='dash-time'>" + r.heure + "</div>" +
           "<div class='dash-rdv-info'>" +
-            "<div class='dash-rdv-n'>" + r.prenom + " " + r.nom + "</div>" +
+            "<div class='dash-rdv-n'>" + nomCliente(r) + "</div>" +
             "<div class='dash-rdv-s'>" + r.prestation + "</div>" +
           "</div>" +
           "<div style='display:flex;flex-direction:column;align-items:flex-end;gap:2px;'>" +
@@ -2719,7 +2745,7 @@ function renderDashboard(rdvs, today) {
       return "<div class='dash-rdv' style='border-left:3px solid var(--or);'>" +
         "<div class='dash-time'>" + r.heure + "</div>" +
         "<div class='dash-rdv-info'>" +
-          "<div class='dash-rdv-n'>" + r.prenom + " " + r.nom + "</div>" +
+          "<div class='dash-rdv-n'>" + nomCliente(r) + "</div>" +
           "<div class='dash-rdv-s'>" + r.prestation + " · " + r.date + "</div>" +
         "</div>" +
         "<div style='display:flex;flex-direction:column;gap:4px;'>" +
@@ -2949,7 +2975,7 @@ function renderMarionDayRdvs() {
       return "<div class='dash-rdv' style='" + (termine ? "opacity:0.5;" : "border-left:3px solid var(--or-light);") + "'>" +
         "<div class='dash-time'>" + r.heure + "</div>" +
         "<div class='dash-rdv-info'>" +
-          "<div class='dash-rdv-n'>" + (r.prenom || "") + " " + (r.nom || "") + "</div>" +
+          "<div class='dash-rdv-n'>" + nomCliente(r) + "</div>" +
           "<div class='dash-rdv-s'>" + (r.prestation || "") + "</div>" +
         "</div>" +
         "<div class='dash-rdv-p'>" + (r.prix || "") + "</div>" +
@@ -3324,6 +3350,21 @@ function startSlotsListener() {
     buildSlotsCache(snap, all);
     renderCr();
   });
+
+  // Filet de sécurité : forcer un refresh quand l'app redevient visible
+  // (cas d'un onglet en arrière-plan, mise en veille mobile, retour en ligne)
+  // évite que la cliente voie un créneau encore "pris" alors que Marion l'a refusé
+  if (!window._slotsRefreshHookInstalled) {
+    window._slotsRefreshHookInstalled = true;
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && currentUser) {
+        loadSlots().then(() => renderCr()).catch(() => {});
+      }
+    });
+    window.addEventListener("online", () => {
+      if (currentUser) loadSlots().then(() => renderCr()).catch(() => {});
+    });
+  }
 }
 
 // Fallback ponctuel (conservé pour les appels existants)
@@ -3870,11 +3911,14 @@ const LOYALTY_MAX = 5;
 function getTampons(){
   const now=new Date();
   const passees=rdvsCache.filter(r=>r.statut==="confirme"&&new Date(r.annee,r.mois,r.jour)<now).length;
-  return passees % LOYALTY_MAX;
+  const offset = parseInt(userProfile?.fideliteOffset || 0);
+  return Math.max(0, passees + offset) % LOYALTY_MAX;
 }
 function getVisitesTotal(){
   const now=new Date();
-  return rdvsCache.filter(r=>r.statut==="confirme"&&new Date(r.annee,r.mois,r.jour)<now).length;
+  const visites = rdvsCache.filter(r=>r.statut==="confirme"&&new Date(r.annee,r.mois,r.jour)<now).length;
+  const offset = parseInt(userProfile?.fideliteOffset || 0);
+  return Math.max(0, visites + offset);
 }
 
 function buildLoyaltyCard(containerId){
@@ -4069,13 +4113,15 @@ async function loadClientes() {
       const uid = d.id;
       const prenom = u.prenom || "";
       const nom = u.nom || "";
-      const email = u.email || "";
       const depuis = u.depuis || "—";
-      const isRouge = rouge.includes(email);
-      const isNoire = noire.includes(email);
 
       // RDV de cette cliente
       const userRdvs = allRdvs.filter(r => r.uid === uid);
+      // Fallback email : si la fiche users est incomplète, on le récupère depuis un RDV existant
+      // → permet à Marion d'identifier les "Cliente #XXX" issues de la race d'inscription
+      const email = u.email || (userRdvs.find(r => r.email)?.email) || "";
+      const isRouge = rouge.includes(email);
+      const isNoire = noire.includes(email);
       const visites = userRdvs.filter(r => r.statut === "confirme" && new Date(r.annee, r.mois, r.jour) < now).length;
       const prochainRdv = userRdvs
         .filter(r => (r.statut === "confirme" || r.statut === "en_attente") && new Date(r.annee, r.mois, r.jour) >= now)
@@ -4094,14 +4140,15 @@ async function loadClientes() {
       const prochainStr = prochainRdv
         ? prochainRdv.date + " · " + prochainRdv.heure
         : "Aucun RDV à venir";
-      const initial = prenom.charAt(0).toUpperCase() || "?";
+      const nomAffiche = nomCliente({ prenom, nom, email, uid });
+      const initial = (prenom.charAt(0) || nomAffiche.charAt(0) || "?").toUpperCase();
 
       // Stocker pour la fiche
       const rowHtml =
         "<div class='cliente-row' data-uid='" + uid + "' style='display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border2);cursor:pointer;'>" +
           "<div style='width:36px;height:36px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:var(--or);flex-shrink:0;'>" + initial + "</div>" +
           "<div style='flex:1;min-width:0;'>" +
-            "<div style='font-size:13px;font-weight:500;color:var(--text);display:flex;align-items:center;flex-wrap:wrap;gap:2px;'>" + prenom + " " + nom + fideliteBadge + listeBadge + "</div>" +
+            "<div style='font-size:13px;font-weight:500;color:var(--text);display:flex;align-items:center;flex-wrap:wrap;gap:2px;'>" + nomAffiche + fideliteBadge + listeBadge + "</div>" +
             "<div style='font-size:11px;color:var(--text3);margin-top:2px;'>" + prochainStr + "</div>" +
             "<div style='font-size:10px;color:var(--text3);margin-top:1px;'>" + visites + " visite" + (visites > 1 ? "s" : "") + " · Depuis " + depuis + "</div>" +
           "</div>" +
@@ -4160,13 +4207,31 @@ async function openFicheCliente(uid) {
   html += "<div style='background:var(--white);border-radius:var(--radius);border:1px solid var(--border2);padding:16px;margin-bottom:12px;'>" +
     "<div style='font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--or);margin-bottom:10px;'>Informations</div>" +
     "<div style='display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;'>" +
-      "<div><span style='color:var(--text3);'>Nom</span><br><strong>" + c.prenom + " " + c.nom + "</strong></div>" +
-      "<div><span style='color:var(--text3);'>Email</span><br>" + c.email + "</div>" +
-      "<div><span style='color:var(--text3);'>Membre depuis</span><br>" + c.depuis + "</div>" +
+      "<div><span style='color:var(--text3);'>Nom</span><br><strong>" + nomCliente(c) + "</strong></div>" +
+      "<div><span style='color:var(--text3);'>Email</span><br>" + (c.email || "—") + "</div>" +
+      "<div><span style='color:var(--text3);'>Téléphone</span><br>" + (c.telephone || "—") + "</div>" +
+      "<div><span style='color:var(--text3);'>Membre depuis</span><br>" + (c.depuis || "—") + "</div>" +
       "<div><span style='color:var(--text3);'>Visites</span><br>" + c.visites + "</div>" +
       "<div><span style='color:var(--text3);'>Fidélité</span><br><strong>" + fideliteLevel + "</strong></div>" +
       "<div><span style='color:var(--text3);'>Statut</span><br>" + listeBadge + "</div>" +
     "</div></div>";
+
+  // Édition de la fiche (Marion peut compléter prenom/nom/téléphone et ajuster fidélité)
+  const escAttr = s => String(s || "").replace(/&/g, "&amp;").replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+  html += "<div style='background:var(--white);border-radius:var(--radius);border:1px solid var(--border2);padding:16px;margin-bottom:12px;'>" +
+    "<div style='font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--or);margin-bottom:10px;'>Modifier la fiche</div>" +
+    "<div style='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;'>" +
+      "<div><label style='font-size:10px;color:var(--text3);'>Prénom</label>" +
+        "<input id='edit-prenom' type='text' value='" + escAttr(c.prenom) + "' style='width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:inherit;box-sizing:border-box;'></div>" +
+      "<div><label style='font-size:10px;color:var(--text3);'>Nom</label>" +
+        "<input id='edit-nom' type='text' value='" + escAttr(c.nom) + "' style='width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:inherit;box-sizing:border-box;'></div>" +
+      "<div style='grid-column:1 / -1;'><label style='font-size:10px;color:var(--text3);'>Téléphone</label>" +
+        "<input id='edit-tel' type='tel' value='" + escAttr(c.telephone) + "' placeholder='06 XX XX XX XX' style='width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:inherit;box-sizing:border-box;'></div>" +
+      "<div style='grid-column:1 / -1;'><label style='font-size:10px;color:var(--text3);'>Ajustement carte fidélité (visites bonus, peut être négatif)</label>" +
+        "<input id='edit-offset' type='number' value='" + parseInt(c.fideliteOffset || 0) + "' style='width:100%;padding:8px;border:1px solid var(--border2);border-radius:6px;font-size:12px;font-family:inherit;box-sizing:border-box;'></div>" +
+    "</div>" +
+    "<button id='btn-save-fiche' data-uid='" + uid + "' style='width:100%;padding:8px;background:var(--text);color:#fff;border:none;border-radius:100px;font-size:11px;cursor:pointer;font-family:inherit;'>Sauvegarder les modifications</button>" +
+  "</div>";
 
   // RDV à venir
   html += "<div style='background:var(--white);border-radius:var(--radius);border:1px solid var(--border2);padding:16px;margin-bottom:12px;'>" +
@@ -4235,7 +4300,7 @@ async function openFicheCliente(uid) {
 
   // Zone suppression compte
   html += "<div style='margin-top:24px;padding-top:16px;border-top:2px solid var(--border2);'>" +
-    "<button id='btn-delete-cliente' data-uid='" + uid + "' data-nom='" + (c.prenom + " " + c.nom).replace(/'/g,"&#39;") + "' " +
+    "<button id='btn-delete-cliente' data-uid='" + uid + "' data-nom='" + nomCliente(c).replace(/'/g,"&#39;") + "' " +
     "style='width:100%;padding:10px 16px;background:transparent;color:var(--erreur);border:1.5px solid var(--erreur);border-radius:100px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:0.5px;' " +
     "onmouseover=\"this.style.background='var(--erreur)';this.style.color='#fff';\" " +
     "onmouseout=\"this.style.background='transparent';this.style.color='var(--erreur)';\">" +
@@ -4257,6 +4322,9 @@ async function openFicheCliente(uid) {
   });
   const btnNotes = document.getElementById("btn-save-notes");
   if (btnNotes) btnNotes.addEventListener("click", () => saveNotes(btnNotes.dataset.uid));
+  // Bouton "Sauvegarder les modifications" de la fiche
+  const btnSaveFiche = contentEl.querySelector("#btn-save-fiche");
+  if (btnSaveFiche) btnSaveFiche.addEventListener("click", () => saveFicheCliente(uid));
   // Init photos ongles pour cette fiche
   initFichePhotos(uid);
 
@@ -4566,6 +4634,43 @@ async function handleDeleteCliente(uid, nomComplet) {
       btn.textContent = "Supprimer le compte";
       btn.style.opacity = "1";
     }
+  }
+}
+
+// ── Sauvegarder fiche cliente (Marion) ──────────────
+async function saveFicheCliente(uid) {
+  const btn = document.getElementById("btn-save-fiche");
+  const elPrenom = document.getElementById("edit-prenom");
+  const elNom    = document.getElementById("edit-nom");
+  const elTel    = document.getElementById("edit-tel");
+  const elOffset = document.getElementById("edit-offset");
+  if (!elPrenom || !elNom) return;
+  const newPrenom = elPrenom.value.trim();
+  const newNom    = elNom.value.trim();
+  const newTel    = (elTel?.value || "").trim();
+  const newOffset = parseInt(elOffset?.value || "0") || 0;
+  if (btn) { btn.textContent = "Sauvegarde…"; btn.disabled = true; }
+  try {
+    await setDoc(doc(db, "users", uid), {
+      prenom:         newPrenom,
+      nom:            newNom,
+      telephone:      newTel,
+      fideliteOffset: newOffset
+    }, { merge: true });
+    // Mettre à jour le cache local Marion pour re-render immédiat
+    const ci = allClientesData.find(x => x.uid === uid);
+    if (ci) {
+      ci.prenom = newPrenom;
+      ci.nom = newNom;
+      ci.telephone = newTel;
+      ci.fideliteOffset = newOffset;
+    }
+    showToast("✦ Fiche mise à jour.");
+    openFicheCliente(uid);
+  } catch(e) {
+    console.error("[FICHE] Erreur sauvegarde:", e.code || e.message, e);
+    showToast("Erreur sauvegarde fiche.");
+    if (btn) { btn.textContent = "Sauvegarder les modifications"; btn.disabled = false; }
   }
 }
 
@@ -4923,16 +5028,17 @@ async function loadDashClientes() {
     let html = "";
     snap.docs.forEach(d => {
       const u = d.data();
+      const uid = d.id;
       const prenom = u.prenom || "";
-      const nom2 = (u.nom || "").split(" ")[1] || "";
-      const initial = prenom.charAt(0).toUpperCase() || "?";
+      const nomComplet = nomCliente({ prenom, nom: u.nom, email: u.email, uid });
+      const initial = (prenom.charAt(0) || nomComplet.charAt(0) || "?").toUpperCase();
       const visites = u.visites || 0;
       const depuis = u.depuis || "—";
       html +=
         "<div class='client-row'>" +
           "<div class='client-av'>" + initial + "</div>" +
           "<div style='flex:1'>" +
-            "<div class='client-nm'>" + prenom + " " + nom2 + "</div>" +
+            "<div class='client-nm'>" + nomComplet + "</div>" +
             "<div class='client-mt'>" + visites + " visite" + (visites > 1 ? "s" : "") + " · Depuis " + depuis + "</div>" +
           "</div>" +
         "</div>";
