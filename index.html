@@ -4113,13 +4113,15 @@ async function loadClientes() {
       const uid = d.id;
       const prenom = u.prenom || "";
       const nom = u.nom || "";
-      const email = u.email || "";
       const depuis = u.depuis || "—";
-      const isRouge = rouge.includes(email);
-      const isNoire = noire.includes(email);
 
       // RDV de cette cliente
       const userRdvs = allRdvs.filter(r => r.uid === uid);
+      // Fallback email : si la fiche users est incomplète, on le récupère depuis un RDV existant
+      // → permet à Marion d'identifier les "Cliente #XXX" issues de la race d'inscription
+      const email = u.email || (userRdvs.find(r => r.email)?.email) || "";
+      const isRouge = rouge.includes(email);
+      const isNoire = noire.includes(email);
       const visites = userRdvs.filter(r => r.statut === "confirme" && new Date(r.annee, r.mois, r.jour) < now).length;
       const prochainRdv = userRdvs
         .filter(r => (r.statut === "confirme" || r.statut === "en_attente") && new Date(r.annee, r.mois, r.jour) >= now)
