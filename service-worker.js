@@ -1,4 +1,4 @@
-const CACHE_NAME = "glow-nails-v2";
+const CACHE_NAME = "glow-nails-v3";
 const ASSETS = [
   "./index.html",
   "./manifest.json",

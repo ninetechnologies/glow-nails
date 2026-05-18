@@ -1264,6 +1264,7 @@ html, body {
 .feed-like-btn.liked { animation:likePop 0.35s ease; }
 @keyframes likePos { 0%{transform:scale(1)} 40%{transform:scale(1.35)} 100%{transform:scale(1)} }
 @keyframes likePopFull { 0%{transform:scale(1)} 30%{transform:scale(1.4)} 100%{transform:scale(1)} }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.7;transform:scale(1.05)} }
 .feed-like-count { font-size:11px; color:var(--text3); }
 .feed-comments { padding:0 16px 14px; }
 .feed-comment { font-size:12px; color:var(--text); line-height:1.45; margin-bottom:6px; }
@@ -2074,7 +2075,7 @@ function fbErr(code) {
     "auth/invalid-credential":   "Email ou mot de passe incorrect.",
     "auth/email-already-in-use": "Un compte existe déjà avec cet email.",
     "auth/weak-password":        "Mot de passe trop court (6 min.).",
-    "auth/too-many-requests":    "Trop de tentatives. Réessayez plus tard.",
+    "auth/too-many-requests":    "Trop de tentatives. Compte bloqué temporairement (~1h). Cliquez sur « Mot de passe oublié ? » ci-dessous pour recevoir un email et débloquer immédiatement.",
   };
   return m[code] || "Une erreur est survenue.";
 }
@@ -2164,6 +2165,16 @@ window.doLogin = async function() {
     await signInWithEmailAndPassword(auth, email, pwd);
   } catch(e) {
     setErr("login-error", fbErr(e.code));
+    // Si bloqué pour trop de tentatives, mettre en évidence le bouton "Mot de passe oublié"
+    if (e.code === "auth/too-many-requests") {
+      const resetBtn = document.querySelector("#view-connexion [data-action='doResetPwd']");
+      if (resetBtn) {
+        resetBtn.style.color = "var(--or)";
+        resetBtn.style.fontWeight = "600";
+        resetBtn.style.fontSize = "15px";
+        resetBtn.style.animation = "pulse 1.4s ease-in-out infinite";
+      }
+    }
   } finally {
     if (btn) { btn.textContent = "Se connecter"; btn.disabled = false; }
   }
@@ -2254,6 +2265,9 @@ function stopListeners() {
   if (unsubRdvs) { unsubRdvs(); unsubRdvs = null; }
   if (unsubDash) { unsubDash(); unsubDash = null; }
   if (unsubPosts) { unsubPosts(); unsubPosts = null; }
+  if (typeof unsubSlots !== "undefined" && unsubSlots) { unsubSlots(); unsubSlots = null; }
+  if (typeof unsubAgenda !== "undefined" && unsubAgenda) { unsubAgenda(); unsubAgenda = null; }
+  if (typeof unsubBlocked !== "undefined" && unsubBlocked) { unsubBlocked(); unsubBlocked = null; }
   if (galerieUnsubscribe) { galerieUnsubscribe(); galerieUnsubscribe = null; }
   if (inspiUnsubscribe) { inspiUnsubscribe(); inspiUnsubscribe = null; }
 }
@@ -3349,6 +3363,11 @@ function startSlotsListener() {
   unsubSlots = onSnapshot(q, (snap) => {
     buildSlotsCache(snap, all);
     renderCr();
+  }, (err) => {
+    // Listener mort (erreur réseau ou transition auth) — relancer après délai
+    console.error("[slots listener] erreur, reconnexion dans 3s:", err.code || err.message);
+    if (unsubSlots) { try { unsubSlots(); } catch(_) {} unsubSlots = null; }
+    setTimeout(() => { if (currentUser) startSlotsListener(); }, 3000);
   });
 
   // Filet de sécurité : forcer un refresh quand l'app redevient visible
@@ -4122,7 +4141,9 @@ async function loadClientes() {
       const email = u.email || (userRdvs.find(r => r.email)?.email) || "";
       const isRouge = rouge.includes(email);
       const isNoire = noire.includes(email);
-      const visites = userRdvs.filter(r => r.statut === "confirme" && new Date(r.annee, r.mois, r.jour) < now).length;
+      const visitesRdvs = userRdvs.filter(r => r.statut === "confirme" && new Date(r.annee, r.mois, r.jour) < now).length;
+      const offset = parseInt(u.fideliteOffset || 0) || 0;
+      const visites = Math.max(0, visitesRdvs + offset);
       const prochainRdv = userRdvs
         .filter(r => (r.statut === "confirme" || r.statut === "en_attente") && new Date(r.annee, r.mois, r.jour) >= now)
         .sort((a,b) => new Date(a.annee,a.mois,a.jour) - new Date(b.annee,b.mois,b.jour))[0] || null;
@@ -4154,7 +4175,7 @@ async function loadClientes() {
           "</div>" +
           "<div style='font-size:16px;color:var(--text3);'>›</div>" +
         "</div>";
-      allClientesData.push({ uid, prenom, nom, email, depuis, isRouge, isNoire, visites, userRdvs, prochainRdv, html: rowHtml });
+      allClientesData.push({ uid, prenom, nom, email, telephone: u.telephone || "", fideliteOffset: u.fideliteOffset || 0, depuis, isRouge, isNoire, visites, userRdvs, prochainRdv, html: rowHtml });
 
       html += rowHtml;
     });
@@ -4660,13 +4681,20 @@ async function saveFicheCliente(uid) {
     // Mettre à jour le cache local Marion pour re-render immédiat
     const ci = allClientesData.find(x => x.uid === uid);
     if (ci) {
+      // Recalculer visites depuis ci.userRdvs (source de vérité) + nouvel offset
+      // → évite bug de reverse-engineering si l'ancien offset clampait à 0
+      const _now = new Date();
+      const visitesRdvs = (ci.userRdvs || []).filter(r => r.statut === "confirme" && new Date(r.annee, r.mois, r.jour) < _now).length;
       ci.prenom = newPrenom;
       ci.nom = newNom;
       ci.telephone = newTel;
       ci.fideliteOffset = newOffset;
+      ci.visites = Math.max(0, visitesRdvs + newOffset);
     }
     showToast("✦ Fiche mise à jour.");
     openFicheCliente(uid);
+    // Rafraîchir le widget "Clientes · Fidélité" du home dashboard
+    if (typeof loadDashClientes === "function") loadDashClientes();
   } catch(e) {
     console.error("[FICHE] Erreur sauvegarde:", e.code || e.message, e);
     showToast("Erreur sauvegarde fiche.");
@@ -5020,19 +5048,26 @@ async function loadDashClientes() {
   if (!el) return;
   el.innerHTML = "<div style='color:var(--text3);font-size:12px;'>Chargement…</div>";
   try {
-    const snap = await getDocs(collection(db, "users"));
-    if (snap.empty) {
+    const [usersSnap, rdvsSnap] = await Promise.all([
+      getDocs(collection(db, "users")),
+      getDocs(collection(db, "rdvs"))
+    ]);
+    if (usersSnap.empty) {
       el.innerHTML = "<div style='color:var(--text3);font-size:12px;'>Aucune cliente inscrite.</div>";
       return;
     }
+    const allRdvs = rdvsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const now = new Date();
     let html = "";
-    snap.docs.forEach(d => {
+    usersSnap.docs.forEach(d => {
       const u = d.data();
       const uid = d.id;
       const prenom = u.prenom || "";
       const nomComplet = nomCliente({ prenom, nom: u.nom, email: u.email, uid });
       const initial = (prenom.charAt(0) || nomComplet.charAt(0) || "?").toUpperCase();
-      const visites = u.visites || 0;
+      const visitesRdvs = allRdvs.filter(r => r.uid === uid && r.statut === "confirme" && new Date(r.annee, r.mois, r.jour) < now).length;
+      const offset = parseInt(u.fideliteOffset || 0) || 0;
+      const visites = Math.max(0, visitesRdvs + offset);
       const depuis = u.depuis || "—";
       html +=
         "<div class='client-row'>" +
