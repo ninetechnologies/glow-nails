@@ -2011,7 +2011,15 @@ html, body {
       <button class="settings-save-btn" id="btn-save-prestas" style="margin-top:14px;">Sauvegarder</button>
     </div>
 
-    <!-- Section 5 — Compte Marion -->
+    <!-- Section 5 — Notifications push -->
+    <div class="settings-card">
+      <div class="settings-card-title">Notifications push</div>
+      <div class="settings-card-sub">Recevez une alerte instantanée à chaque nouvelle demande de rendez-vous, en plus de l'email. À activer sur chaque appareil que vous voulez recevoir des notifs (iPhone, PC, etc).</div>
+      <button class="settings-save-btn" id="btn-activer-notifs-push" onclick="activerNotifsPush()" style="margin-top:14px;">Activer sur cet appareil</button>
+      <div id="notifs-push-status" style="font-size:11px;color:var(--text3);margin-top:10px;"></div>
+    </div>
+
+    <!-- Section 6 — Compte Marion -->
     <div class="settings-card">
       <div class="settings-card-title">Mon compte</div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">
@@ -2049,6 +2057,9 @@ import {
 import {
   getFunctions, httpsCallable
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-functions.js";
+import {
+  getMessaging, getToken, isSupported as isMessagingSupported, onMessage
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB1R9I0KVkRNL7da3cOWUk9gIhqp0X0748",
@@ -2065,6 +2076,71 @@ const auth = getAuth(app);
 const db   = getFirestore(app);
 const storage = getStorage(app);
 const firebaseFunctions = getFunctions(app);
+
+// ── Firebase Cloud Messaging (notifs push Marion) ─────
+const VAPID_KEY = "BM15hVTLSzDK8HrnfJjxEk8-LJTZzy1GhBYWFp777nMtpClZwVjp9yEqNl-M7xj13Uql4ErhyQqmNL_8jGU1WL4";
+let messagingInstance = null;
+(async function initMessaging() {
+  try {
+    if (await isMessagingSupported()) {
+      messagingInstance = getMessaging(app);
+      onMessage(messagingInstance, (payload) => {
+        if (typeof showToast === "function") {
+          showToast(`✦ ${payload.notification?.title || 'Notif'} : ${payload.notification?.body || ''}`);
+        }
+      });
+      console.log("[FCM] Messaging initialisé");
+    } else {
+      console.log("[FCM] Non supporté sur ce navigateur");
+    }
+  } catch (e) {
+    console.warn("[FCM] Init échouée :", e);
+  }
+})();
+
+// ── Activation push pour Marion (cliquée depuis bouton Réglages) ─────
+window.activerNotifsPush = async function() {
+  if (!currentUser) {
+    if (typeof showToast === "function") showToast("Connectez-vous d'abord.");
+    return;
+  }
+  if (!messagingInstance) {
+    if (typeof showToast === "function") showToast("Notifications non supportées sur cet appareil.");
+    return;
+  }
+  const btn = document.getElementById("btn-activer-notifs-push");
+  const statusEl = document.getElementById("notifs-push-status");
+  if (btn) { btn.disabled = true; btn.textContent = "Activation..."; }
+
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      if (typeof showToast === "function") showToast("Permission refusée. Activez les notifications dans les réglages de votre navigateur.");
+      if (statusEl) statusEl.textContent = "Permission refusée";
+      return;
+    }
+
+    const token = await getToken(messagingInstance, { vapidKey: VAPID_KEY });
+    if (!token) {
+      if (typeof showToast === "function") showToast("Impossible d'obtenir le token. Réessayez.");
+      return;
+    }
+
+    await setDoc(doc(db, "admin_devices", token), {
+      email: currentUser.email,
+      userAgent: navigator.userAgent,
+      addedAt: serverTimestamp()
+    });
+
+    if (typeof showToast === "function") showToast("✦ Notifications activées sur cet appareil !");
+    if (statusEl) statusEl.textContent = "✓ Activées sur cet appareil";
+  } catch (e) {
+    console.error("[FCM] Erreur activation :", e);
+    if (typeof showToast === "function") showToast("Erreur. Voir la console.");
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "Activer sur cet appareil"; }
+  }
+};
 
 // ── Traduction erreurs Firebase ──────────────────────
 function fbErr(code) {
