@@ -119,5 +119,55 @@ exports.notifyMarionOnNewRdv = onDocumentCreated(
     } catch (e) {
       logger.error("Erreur envoi email :", e);
     }
+
+    // ── Envoi push FCM aux devices admin enregistrés ─────
+    try {
+      const devicesSnap = await admin.firestore().collection("admin_devices").get();
+      const tokens = devicesSnap.docs.map(d => d.id);
+
+      if (tokens.length === 0) {
+        logger.info("Aucun device admin enregistré, skip push FCM");
+        return;
+      }
+
+      const response = await admin.messaging().sendEachForMulticast({
+        tokens: tokens,
+        notification: {
+          title: "Nouvelle demande RDV",
+          body: `${rdv.prenom || ""} ${rdv.nom || ""} — ${rdv.date || ""} ${rdv.heure || ""}`.trim()
+        },
+        data: { rdvId: rdvId, url: "https://glow-nails.vercel.app" },
+        webpush: {
+          notification: {
+            icon: "https://glow-nails.vercel.app/web-app-manifest-192x192.png",
+            badge: "https://glow-nails.vercel.app/favicon-96x96.png"
+          },
+          fcmOptions: { link: "https://glow-nails.vercel.app" }
+        }
+      });
+
+      logger.info(`Push FCM : ${response.successCount} succès / ${response.failureCount} échecs sur ${tokens.length} devices`);
+
+      // Cleanup tokens invalides
+      const tokensToDelete = [];
+      response.responses.forEach((r, i) => {
+        if (!r.success) {
+          const code = r.error?.code || "";
+          if (code === "messaging/registration-token-not-registered" ||
+              code === "messaging/invalid-registration-token") {
+            tokensToDelete.push(tokens[i]);
+          }
+        }
+      });
+
+      if (tokensToDelete.length > 0) {
+        const batch = admin.firestore().batch();
+        tokensToDelete.forEach(t => batch.delete(admin.firestore().collection("admin_devices").doc(t)));
+        await batch.commit();
+        logger.info(`Cleanup : ${tokensToDelete.length} tokens FCM invalides supprimés`);
+      }
+    } catch (e) {
+      logger.error("Erreur envoi push FCM :", e);
+    }
   }
 );
