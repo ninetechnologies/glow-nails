@@ -1,4 +1,4 @@
-const CACHE_NAME = "glow-nails-v3";
+const CACHE_NAME = "glow-nails-v4";
 const ASSETS = [
   "./index.html",
   "./manifest.json",
@@ -29,6 +29,9 @@ self.addEventListener("fetch", e => {
   // Skip non-GET and cross-origin requests
   if (e.request.method !== "GET") return;
   if (!e.request.url.startsWith(self.location.origin)) return;
+  // Skip Firebase Messaging SW (laisser le SW FCM gérer ses propres requêtes)
+  if (e.request.url.includes("firebase-messaging-sw.js")) return;
+  if (e.request.url.includes("/firebase-cloud-messaging-push-scope")) return;
 
   e.respondWith(
     fetch(e.request)
