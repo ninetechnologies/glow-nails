@@ -3383,10 +3383,12 @@ let calY   = new Date().getFullYear();
 let calM   = new Date().getMonth();
 
 function getCalBounds(){
+  // Plage de réservation cliente : mois courant + 2 mois suivants (cf FAQ "2 mois à l'avance")
   const now=new Date();
   const minY=now.getFullYear(), minM=now.getMonth();
-  let maxM=minM+1, maxY=minY;
-  if(maxM>11){maxM=0;maxY++;}
+  const totalM = minM + 2;
+  const maxM = totalM % 12;
+  const maxY = minY + Math.floor(totalM / 12);
   return {minY,minM,maxY,maxM};
 }
 
