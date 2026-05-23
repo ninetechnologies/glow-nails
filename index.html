@@ -2308,7 +2308,7 @@ window.doRegister = async function() {
         to_email:    email,
         to_name:     prenom,
         salon_name:  "Glow Nails",
-        salon_phone: "glownails.contact31@gmail.com"
+        salon_phone: "06 04 03 55 60"
       });
     } catch(mailErr) { console.error("Email bienvenue échoué:", mailErr); }
   } catch(e) {
@@ -4679,7 +4679,7 @@ async function openFicheCliente(uid) {
           heure: heureVal,
           prestation: prestaVal,
           salon_name: "Glow Nails",
-          salon_phone: "glownails.contact31@gmail.com"
+          salon_phone: "06 04 03 55 60"
         }).catch(err => console.warn("Mail confirmation non envoyé:", err));
         showToast("✦ RDV ajouté !");
         const rdvsSnap = await getDocs(query(collection(db, "rdvs"), where("uid", "==", uid)));
@@ -5803,7 +5803,7 @@ async function envoyerRappelsJMoins1() {
         heure:       rdv.heure,
         prestation:  rdv.prestation || "Votre prestation",
         salon_name:  "Glow Nails",
-        salon_phone: "glownails.contact31@gmail.com"
+        salon_phone: "06 04 03 55 60"
       };
       console.log("📧 Envoi rappel à:", JSON.stringify(templateParams));
       try {
