@@ -1346,7 +1346,13 @@ html, body {
     <div id="view-connexion" style="display:none; width:100%;">
       <div class="login-form visible">
         <input class="form-field" type="email" id="login-email" placeholder="Adresse email" autocomplete="email">
-        <input class="form-field" type="password" id="login-pwd" placeholder="Mot de passe" autocomplete="current-password">
+        <div class="pwd-wrap" style="position:relative;width:100%;">
+          <input class="form-field" type="password" id="login-pwd" placeholder="Mot de passe" autocomplete="current-password" style="padding-right:48px;">
+          <button type="button" class="pwd-toggle" data-pwd-target="login-pwd" aria-label="Afficher le mot de passe" style="position:absolute;top:50%;right:14px;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;color:var(--text3);display:flex;align-items:center;">
+            <svg class="icon-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="icon-eye-off" style="display:none;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
         <div class="form-error" id="login-error">Email ou mot de passe incorrect</div>
         <button class="btn-main" data-action="doLogin" style="margin-top:4px;">Se connecter</button>
           <div style="text-align:center; margin-top:10px;">
@@ -1367,7 +1373,13 @@ html, body {
       <div class="login-form visible">
         <input class="form-field" type="text" id="reg-nom" placeholder="Prénom et nom" autocomplete="name">
         <input class="form-field" type="email" id="reg-email" placeholder="Adresse email" autocomplete="email">
-        <input class="form-field" type="password" id="reg-pwd" placeholder="Mot de passe (6 caractères min.)" autocomplete="new-password">
+        <div class="pwd-wrap" style="position:relative;width:100%;">
+          <input class="form-field" type="password" id="reg-pwd" placeholder="Mot de passe (6 caractères min.)" autocomplete="new-password" style="padding-right:48px;">
+          <button type="button" class="pwd-toggle" data-pwd-target="reg-pwd" aria-label="Afficher le mot de passe" style="position:absolute;top:50%;right:14px;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;color:var(--text3);display:flex;align-items:center;">
+            <svg class="icon-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="icon-eye-off" style="display:none;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
         <div class="form-error" id="reg-error"></div>
         <div class="rgpd-check">
           <input type="checkbox" id="reg-rgpd">
@@ -1388,7 +1400,13 @@ html, body {
       <div class="login-form visible">
         <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:12px;text-align:center;">Accès réservé</div>
         <input class="form-field" type="email" id="marion-email" placeholder="Email administrateur" autocomplete="email">
-        <input class="form-field" type="password" id="marion-pwd" placeholder="Mot de passe" autocomplete="current-password">
+        <div class="pwd-wrap" style="position:relative;width:100%;">
+          <input class="form-field" type="password" id="marion-pwd" placeholder="Mot de passe" autocomplete="current-password" style="padding-right:48px;">
+          <button type="button" class="pwd-toggle" data-pwd-target="marion-pwd" aria-label="Afficher le mot de passe" style="position:absolute;top:50%;right:14px;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;color:var(--text3);display:flex;align-items:center;">
+            <svg class="icon-eye" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="icon-eye-off" style="display:none;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
         <div class="form-error" id="marion-error"></div>
         <button class="btn-main" data-action="doLoginMarion" style="margin-top:4px;">Accéder au dashboard</button>
       </div>
@@ -1464,6 +1482,12 @@ html, body {
 
 <!-- APP CLIENTE -->
 <div id="app" style="display:none;">
+
+  <!-- Bandeau aperçu cliente (visible uniquement quand la gérante prévisualise) -->
+  <div id="preview-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#1A1A2E;color:#fff;padding:8px 14px;align-items:center;justify-content:space-between;gap:10px;font-family:inherit;font-size:12px;box-shadow:0 2px 10px rgba(0,0,0,0.2);">
+    <span style="display:flex;align-items:center;gap:6px;">👁 Aperçu de l'espace cliente<span style="opacity:.6;"> — lecture seule</span></span>
+    <button id="btn-exit-preview" style="background:#fff;color:#1A1A2E;border:none;border-radius:100px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">Retour gérante</button>
+  </div>
 
   <div class="topbar">
     <div class="topbar-logo"><img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAASABIAAD/4QCMRXhpZgAATU0AKgAAAAgABQESAAMAAAABAAEAAAEaAAUAAAABAAAASgEbAAUAAAABAAAAUgEoAAMAAAABAAIAAIdpAAQAAAABAAAAWgAAAAAAAABIAAAAAQAAAEgAAAABAAOgAQADAAAAAQABAACgAgAEAAAAAQAAAfSgAwAEAAAAAQAAAfQAAAAA/8AAEQgB9AH0AwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/bAEMAAQEBAQEBAgEBAgMCAgIDBQMDAwMFBgUFBQUFBgcGBgYGBgYHBwcHBwcHBwgICAgICAoKCgoKCwsLCwsLCwsLC//bAEMBAgICAwMDBQMDBQwIBggMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDP/dAAQAIP/aAAwDAQACEQMRAD8A/oQooor4M+kCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD//Q/oQooor4M+kCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD//R/oQooor4M+kCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD//S/oQooor4M+kCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD//T/oQooor4M+kCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD//U/oQooor4M+kCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD//V/oQooor4M+kCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD//W/oQooor4M+kCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKK9Y+HPwe8Z/E6Zf7Ih8m1X791L92vuTw78AvhD8KtKbX/ABiyXhiHzz3v+r/799P5114bBVKhzVMTTpn59+Gfhz408XLu8NaZcXUP99VxH/386V7tp/7I3xCeMTaxeWVgjff3SE7fyGK6/wCIX7Wl9JHLo3wytltYE+T7VKPm/wC2ceP1b8q+SvEXjPxR4tff4h1C4vV/6btW1T6rD/p4V+/qHv158BPh3pDbdc+IFhE/9xF8z/2tWDefDH4FRDP/AAn/AP5JySV870VHtYf8+zb2c/8An4e4f8Kl8G3j+V4d8caRJ/1+eZBW7/wy18S7yH7Voc2m6kn9+CevnKtjQfE2ueG777d4fuZbOb+/ExX+VT7WH/LyBn7Koez/APDMPxs83/kDLt/vedb/APxyu48O/sifEG+uk/4SCa3sLf8Aj2nc35Dj/wAerW8A/tc67o+yy+IEP2+H/nvB8rj8Oh/SvvDwr4w8P+M9MGr+G7lLiFvTsfevTw+CwtT+GclTE4imfnz+078OtH8ESaBBoKbIDayW49cRSeZz+Mhr5Ir9Lf2wdLjvPh3basD89ldKv/AJflP/AI9sr80q4cyp+zrm+Gq+0phRRRXnHSFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFAH/9f+hCiiivgz6QKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACvs/4Jfs0ya39m8VfEBClnxJDatwZPTzOPuH9f56v7OPwEjv4ovHXjSHfCcPYQN3H9+T+n/6q+7tS1Gx0axm1TVJVhgt0Mju3RVHWvdy3Lf8Al5UPOxOJ/wCXdM4/xj4u8MfCjwkdQvEWG2t12QQRYGfRVFflL8TPil4m+Jmqf2hrT7LeL/UWq/dWr/xc+J+o/EnxPJqM25LOP5LSHptSvKK5sbjfae5T/hnRhsN7MKKKK8s6QooooAKKKKACvQPh/wDEPxB8N9cj1fw+/wAoPzwH7sqV5/RVUqvIB+p3jHxLofxk+Amr6po/zeVAZXjb7yyQ4kx+lfljXr3wX8fP4R8SDR9Sf/iVaqv2O/T0WXjf+H8q8pvLK4s7uSxuP9bFJ5T1343E+35JnPhqXs/3ZXooorzjoCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD/0P6EKKKK+DPpAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAr6H/Z6+FT/EPxMupakn/Eqsfnm3fxHsleAQwzXk8UNunmySfukSv2U+FXgK3+Hng220CP8A13353H8Uh6135bhvb1DmxNT2dM9HjiWFNkdfGP7Xfj6bStFtvAumN++vf30//XMcAfif5V9p1+L/AMW/FjeNviFqWvK++N5zHBx/yzi+5XuZtifZ0+Q4sDS9pUPN6KKK+UPWCiiigAooooAKKKKACiiigAommmmeWa4/1stFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAf/R/oQooor4M+kCiiigAooooAKKKKACiiigAooooAKKKKACiiigAoorf0Hwp4q8UyeV4f0+4vB/0wQt/KgDAor6H0n9mL4u30W+ayis0/v3UiH+W5q1n/ZshsVzrPi7RYP+2tdn1Ov/ACEfWIEX7Lng6DxN8SE1K8XzINJQXH/bT/ln/wCzH8K/VCvz08I+DNP+H8c1t4Y+KWl2f2n7+yKOTd/5Gr0aC98XY36b8XNKuP8ArpFb/wDxyvawVX2NP2Z5mJ/eVD3b4u+IP+EZ+Gut6vv2ulq8cZ9JJPkj/wDHiK/Gav0b8W/Dr45/ELwrLoc3iLS9VtLny33NH5f6xV8x6t+zR8XdHthdf2et2g/hikQ/zwa48yp1KlT4DpwPs6Z4BRXQav4T8ReHpPK8RafcWb/9N43j/nXP14p2hRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQB//0v6EKKKK+DPpAooooAKKKKACiiigAooooAKKKKACiiigAooooAK77wr8S/HfgzTptL8L6gbOC5l819iVwNFVSq8gHQax4q8ReJJPM1zULi9/67yPJ/M1z9FFSB+tXw2+Enw9g8D6VNq2h2VzeS2sLzyTwxyMZDGM84NdVN8FfhTdL++0CyH+5EF/lXomm2i2VjDa/wDPNAn5VoV9xTw1M8H2lQ/N79pTwp4a+FF1o83w+SXSrm/aVneCWQf6ny/f/brzfwt+0v8AFbwsI4rm+/tC3H8F6N+frJ98/nXrv7ac27XtBi/55wSy18R18xjans6/7s9fDU/aU/3h+kXgj9qzwb4nRdJ8cW/9nTP8m8/NE349v8813HiP9nn4SeObUappEC2bv88c9k2F/CMfu/8Ax2vylr1D4c/Fzxp8Orpf+EfucwL9+1flG/wrop5l7T93XMquG/59npHj79lv4heF995o6/2xbJ/FEP3n/fvk/lmvmeaHyZPs9xX65fCz45+FPidarHFItnqG3D2srjr/ALB/j/KrHxI+Bfgv4jR/aL+EW18Pu3UIw3/AsY3/AI1tVy2nUp+0oGNPHVKf7uofkLRXsHxJ+C/jP4Yz+dqUP2mzP3LqIZX8euPxrx+vDq06lP4z0vae0CiiioAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP//T/oQooor4M+kCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKIv9dRRQB+9FFYHhu+/tLQLDUf+fmCOT/vpAa36+8Pmz83/wBtCTPjDSYv+nL/ANqGvjevtb9tKNv7e0e57NAyflJ/9evimvlcx/jTPdw/8NhRRRXmm5Ysb6fT7pL7T3aKWL94jr/BX6F/Ar9pSDXoYvCfjuQR3wwkF1/DKO27n7/86/OyiuvDYmpQqfuzOpTp1D92b+ws9UtJNPv4llhlGx0cZBFfnr8bf2ZLvRI5fEnw9Rp7bdvktRlnX/rn94n+f1r0P9mb416r4nk/4QXxLvuJokLwXR53J6P/ALX+fr9rV9L7KniqZ5H7yhUPwXor9F/j1+zpFrtrP4r8Cw4vlBee1X/lr/u/7f8AOvzokhmhkkhmTypI6+axOGqYep+8PXp1PaHpHgHxhovh29S28TaJb6nZ/ednX94v/XOTtX6V6D8J/gl4i0iDXNG0OzlguU3xPsr8jK/S39j7xBcX/wAO7nw/Mu3+zbo+X/1zl+f/ANC313ZTU/eclQ5sbS/5eHrv/Ch/hB/0ALX/AL4qvefBn4OadaSXl9olnHDGC7yOPu17NXzh+0/rkmg/CS/a3+SW9dLf/vqvcqU4U4e09mebS9pUqH5/fEvxp4R1a8k0zwLolvp1gjHZLtHmsP8A2Qe1eT0UV8ZVq+0PfPSPBvhDwH4kmFprviJ9HuH/AI3tt0f/AH88xf5V9UQ/sWJNGHi8Ubwf4ha//bq+D6+v/wBmL4w3mia1D4J1qZprO8bZBu/5ZOf8a78F7GpU9nUpnPiPaf8ALs7f/hiRf+hl/wDJb/7bXAeN/wBm7wf8P7L7X4q8YCJn+5GLfLt9I/OzX3b8SvHen/DnwpceIrzBZPkhT+856Cvx58T+KNZ8Ya3Pr+vy+fPcdhXbjadGh/y7OXDVKlQo6hDYxzH+y3MkH8DOMNWfRRXgnpBRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQB/9T+hCiiivgz6QKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA/Yb4C6wuufCfRJs58m3Fv/AN+f3f8ASvYq+LP2OPEwvPC+o+F5W3PZTi4T18uXgf8AoBr7Tr7XA1faUKZ4GJpezqHw5+2lpX2nRdG1z/n3na3/AO/vP/tOvz6r9Wv2otJGqfCG8mPWzlinX/vry/5PX5S18/m1L/aD1MJ8AUUUV5R1hRRRQB7x+zrv/wCEuv8AH/QNuv8A0Wa+vP2dfjY3jTTl8L+J5t2qwD5JW/5ar/8AF/3vzr5F/Z7/AOR5vP8AsF3n/ouvFdH1i+0HVYNc0ud7ae0fzUdK9HDYn2FOmc9Sl7Q/divjv9oT4Ax+L428W+D4cain+uhQf60euP7/APMV7L8HvifZ/E/wtHqilUvIf3d3Ev8AC/8AhXr9fR1KVOvTPJ/eU6h+C80PkyfZ7ivvb9if/j28RfW3/wDalT/tL/Axr1ZfiB4Rh+cZe/gX+PuX/wDiqg/Yk/1HiL62/wD7UrxMNhqlDFch6VSp7TDn3lXyP+2R/wAkws/+wnH/AOi5K+uK+RP2zP8AkmNh/wBhKP8A9FyV7mO/hTPOwvxH5pUUUV8Ue6FWYprizkimhfy5YvnSq1FAH2r+1r4pn1fS/DVqn7pLmA3kqf8AXXZs/wDZ6+Kq+nv2j/8Aj38F/wDYEt6+Ya7MbU9pXMMP/DYUUUVxm4UUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAf/9X+hCiiivgz6QKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA+gP2aPFzeD/ihZ20z/ALjUm+xv9Zf9X/5EwtfrRX4LxzTQyRzQv5Ukdfsz8JfHEfxA8C2XiDrMyBJ/TzAPmxX0WS4n/l2ebjqX/Lw6TxhokPijw1feHJul7A8VfiVNDNZ3UttMnlSx/unSv3gr8l/2mPBP/CJ/Ey6uoU/0fVG+2J9T/rPzfLU86pfu/aBgqv8Ay7Pn+iiivnD0gooooA96/Z7/AOR5vP8AsF3n/ouvBa96/Z7/AOR5vP8AsF3n/ouvBa6qvwUyP+Xh6f8ACj4i6h8MvFUOt2+54Jfku4P7yV+v+j6xY67psGs6VIs9tOm9HTvX4Y19y/smfE37NdSfDvWpf3cnz2DOf4uS6f1H416GU4n2dT2dQ5cbhv8Al4foHXyXDYaf8AvH89+ibPDniJ445Hx/x7TjhPojb/w/IH60rn/EXh7S/FWiz+H9bh86zuk2OntXvVKftDzadU6CvkT9sz/kmNh/2Eo//Rcldt8M9e1Pwtr8nwe8WzNNPbJv026c/wDHxAOo/wB+PjPt+Z4n9sz/AJJjYf8AYSj/APRclc2Jqe0oVDWlT9nUPzSooor5A9oKKKKAPp79o/8A49/Bf/YEt6+Ya+nv2j/+PfwX/wBgS3r5hrsx3xkYf+GwooorjLCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD/9b+hCiiivgz6QKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAK+l/2aPihH4H8T/wBj6w+zT9Q+R+PuyfwH/wBlNfNFFb0qvs6ntDOpT9ofvRXzZ+054APjL4fyahaJvu9JzcIPVP8AloP++efwrlP2bPjVB4q0xPBuvy7dQtl/cux/1qfj/F/n1r6+r6z3MVQPD/eUKh+C9FfQH7QHwquPhz4qlvtPT/iVXnzwbf4f9ivn+vkqlL2dT2dQ9ynU9oFFFFYmh71+z3/yPN5/2C7z/wBF14LXvX7Pf/I83n/YLvP/AEXXgtdVX4KZH/LwKsWN5qGl30d9p7tDPE+9HT+GSq9FcpZ+yXwk+I1n8SvB9vr0BTzx8l0i/wAMlerV+S37PHxPf4feMktdSl8vTdQ+Sfd/D/cf8K/Wmvr8Fifb0zxcTT9nUPIfi14IufFeiR6joDCHWtKY3FhKf7/dPpJ9018x/HrxvZfEX4F6brSr9nuodTjivIO8U4il8yM/Q199V+ff7VHw2vNJik8X6Dv+wXkqvfwL0M4JCSf+PkVlmNP93UqUx4X4j4booor5U9kKKKKAPp79o/8A49/Bf/YEt6+Ya+nv2j/+PfwX/wBgS3r5hrsx3xkYf+GwooorjLCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD/9f+hCiiivgz6QKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKANDS9U1DRNQTVNLuHt54H3o8f8Nfp58DPjzpnxC0+LRNfdbfWovlaNuPNx/HH/AFFflnViGaWzmimt3eOSP96jx114bG1KFQzxOG9oftj4z8IaP430Cbw9rqB4Zh+IbsRX5G/Ev4a698M9eOk6wnmQv/qJ16Sx19TfCL9q/wAlbbw/8TDjdhEvl6f9tP8A61fYWuaD4S+Jfh37FqSRX9jcLlHjOev8Ucg/mte5UpU8bT9pTPOp1KlD+IfihRX1B8TP2YPF/hF31Lwyr6rY7f4ATKn/AGzC8/hXy/LDNDJ5NwnlSV8/UpVKf8Q9GlUp1D3r9nv/AJHm8/7Bd5/6LrwWvev2e/8Akebz/sF3n/ouvBaur8FMf/LwKKK9Q+H/AMI/GnxKuh/Y9t5dofv3UvCr/jXPTpe0/hlnGeGPDGo+MdftfD+kJvmuX2IzV+p3wZ8Sawi3Xw18XH/iaaCfKV8HEsH/ACzk59sVj+C/C/ws/Z/00LqmoW0V/Mu6aeV/3jf7kfXZn0rxn4k/HP4fyeLtN8ceB55ZdS06UW8/7shJbc8smTjv0r3MNT+q/vJzPOq1fbn33WHr2g6b4k0i40PVk8y2uU2OntUuj6xYa9pcGs6Y3mW9ym9H9jWvXvHmH4n/ABI8G6h8PfFV54b1DlY3Ox/70f8AA9cPX6i/tN/C+Pxl4TPibTI/+JlpSl129Xj6uv6Z/Cvy6r47G4b2FQ9vDVfaUwooorkOk+nv2j/+PfwX/wBgS3r5hr6e/aP/AOPfwX/2BLevmGuzHfGRh/4bCiiiuMsKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP//Q/oQooor4M+kCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAK7nwf8QvF3w/uvtnhjUJYB/Gmcxt/2z6Vw1FV7T2YH3L4R/bLvFVIPGumK7H/ltakr/wCQ5D/7NXZan8Yf2ZfiEwPjG2+f+/dWsgf/AL+RA1+dFFd39pYj/l4c31KmfbWg2fwptfij/wAWol3WsmkXm/8A1nyv5f8A01ry/wAL6R+zXF4cs73xdqt9LqUkX+kWkH8J+vl/+1az/wBnv/kebz/sF3n/AKLrwWn9Z/d+05A9kfScnxO+CnhUt/wgnhD7fPH92bVDu/8AIdc54n/aG+KPiqP7P/aP2CH/AJ4WQ8r9fmk/8erw+isvrNQ29lTCWaaaTzrh/NkooorjLPuz9kT4ofNL8L9Wfrm4sP5yRj/0Mf8AAzX35X4UaPrF9oOqQa5pb+XcWj+aj1+yXw18c2fxF8H2via0GHdQkyf3JON6/hX0+U4n2lP2Z5OOpf8ALw9Fr8j/AI//AA1b4f8AjR1tE/4l97/pFnt/h9U/z7V+uFeKfHP4cj4keBp9Ot03X1t+/tf98Dp+NdGZYb29Mzw1T2dQ/IKiiaHyZPJm/wBZRXyB7R9PftH/APHv4L/7AlvXzDX09+0f/wAe/gv/ALAlvXzDXZjvjIw/8NhRRRXGWFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFABRRRQAUUUUAFFFFAH/0f6EKKKK+DPpAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA96/Z7/AOR5vP8AsF3n/ouvBa96/Z7/AOR5vP8AsF3n/ouvBa6qvwUyP+XgUUUVylhRRRQAV9L/ALNHxPPgjxauh6k//Ev1P5H/ANmT+A9v93/9VfNFFb0qvs6ntDOpT9ofvRRXzn+zp8TW8feD0sdTl36lp/yT+pX+F/x7+9fRlfY06ntKftDw6lL2Z+W/7U3w7bwr4zPiW0T/AELVfn/3Zznf+f3q+X6/Zr4r+A4fiF4MudBP+v8A9ZAx/hftX423dnNZ3Utjfp5bxP5To9fN5lhvZ1D18FU9pTPpb9o//j38F/8AYEt6+Ya+nv2j/wDj38F/9gS3r5hrnx3xm2H/AIbCiiiuMsKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/9L+hCiiivgz6QKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAPev2e/wDkebz/ALBd5/6LrwWvoj9mXTZdU8fTxw/wWEv9E/rXzvXVV+CmR/y8CiiiuUsKKKKACiiigD0j4W/EC8+G/iyHxFa8xN8k6L/FHX7EaTqtjrmmwanpj+ZBcpvR/avwvr7u/ZK+KKxSSfDnXZfv/PYZ/Eun/sw/GvaynE+zqchxY2l/y8PvqvzO/av+HTeHfFSeMtNi22Wp580rn5J+v/kTlvqDX6Y1518TfBNp8QPBt34buiFeVD5L/wB1/wCE17WNw3tqfszzcNV9nUPz6/aP/wCPfwX/ANgS3r5hr6l/aYtnsH8KWl0u2e20hInT6V8tV8xjf4x7mH/hsKKKK4iwooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//T/oQooor4M+kCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACirFnZzXl1HZWKPLJN9xI6+uPhL+z1psmoR6n8StQs4o1+dbJJkLN/wBdP/sTW9LDVKn8MzqVPZnqv7IngG60nQ7zxvqSeXLf4igX/pmOd/8AwIn9K+Sfjh4AuvA3jq7tTHi1uX+0Wkn/AEzr9YYNf8I2cCWtrfWiIPkQCRcfTrXE+PtE+HXxG0Q6Pr15bH+5KHTere2f5V9BUwVP2Hs6Z5tPE/vPaH460V7D4++C+veB5nurWa31Wx5/f2pwR/10j/8A1149XzdWnUp/GetTqe0CiiioAKKKKACtDTdU1DRdQg1bSZXjntn3o6fwSCs+igD9jPg/8SrP4neEYdZjKC7j+S6jX+F69cr8dvgx8ULv4a+LIr5tz2M/yXYx/wAs/Wv1403UrHWLCLU9NkEtvOodHXoQa+vy3E+3pni4mn7OofE37Yvgi9u7Ox8a2Y8yGD/R509M/dfr+H5V8A1+5euaLY+I9HuNG1RPMt7lNjpX42fEDwbqHgTxhd+GdQ+Zbdzsf+9H/A/415WbYb2dT2h24Kr/AMuzh6KKK8U7QooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//1P6EKKKK+DPpAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAr7N/Zc+M39i3SeBPE9xutrlv9Fdv4XP8H418ZUVthsTUo1PaUzOpT9ofvRXzH+0h8KE8feFjrmmx51XTQXQj+KP+NP8+lc9+zj8bv8AhMrFfCPiab/ia24+Rz/y1T8f4v8A9frX17X1vuYqgeH+8oVD8F6K+sP2mPg63hHWv+Ey0VM6fev86KP9VJ/ga+T6+UxNKpCp7Ooe5Tqe0Ciiiuc0CiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP//V/oQooor4M+kCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigCxpuqX2l30WqaTK8dxG+9HT+Gv1U+BnxssfidpA0zU3VNZtl/fp0Df7S1+UdaGkarqmiapBrmh3D215bPvR0rrwWNqYeoc2Jw3tD9uPEHh/S/FGiz+H9Zi820uk8t09q/H/4o/DjUvhj4nbRrob7dvngnb+KOv0V+CXx00v4l2KaZqjJbaxEvzxdN2O6e1egfEn4c6P8TPDz6JrA2sPngmx80T+or6HE4aniqftKZx06nsKn7w/GKiuo8aeEdZ8D6/NoPiBNkqdP9qP1rl6+TPVCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/9b+hCiiivgz6QKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigCxp+oX+l3qahYu1vPE/mI8f8Nfon8Gf2nNN8SRr4b+IEgtr1cJFdD/VzfX+636H9K/OSiuzDYmpQ/hmdSnTqH7GfFX4SeH/ijpP2PUF8q6T/AFNyv3k9vpX5R+OPh/4l+HutPpniaHYW+4/8Lf8AXOvZ/hP+0l4m8BKNL8QBtT09fvJn54v+uf8Aga+64bz4YfH/AMKNHG8WoQY+Zc4liYj80avRqUqON+D+IcdP2lD+Ifj7RX0x8T/2Z/FngiRtR8PJJqun7fvJ95f+ukf9Vr5nryalKpT/AIh2U6ntAooorA0CiiigAooooAKKKKACiiigAooooAKKKKACiiigD//X/oQooor4M+kCiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACtDR9a1bQdQTUtDu5baaL7jwHa/51n0UAfZHgf9rvxBpMaWPjS2GoJ/z3T5W/w/lXoOoTfsx/G8ec06aNqkn8f+ok/wDjcn61+e1FehTzGp/Dqe8c/wBWp/8ALs+xvE/7H/iy3/eeE9Rt7+H0l/dt/UfrXkF/+z78XtJm+z3GiSv/ANcNkn/otjXnGi+KvEmh/wDID1G4sf8ArhI8f8sV6Ba/Hr4uRNuj164/4H83880/a4eYv9oOfk+EvxSj6eHdS/8AAeT/AApf+FS/FGT5m8Oap/4Dyf4V28f7Snxwj667/wCQLf8A+N1m3n7Qnxj1Bg11r0v/AABY4/8A0WFrH/ZzX94ec+JPCHiLwjcJZ+JrFrN5V3ojd465+tjxB4m8Q+I5/tfiK9uLx/78rFv51j1zVDQKKKKkAooooAKKKKACiiigAooooA//0P6EKKKK+DPpAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//0f6EKKKK+DPpAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//0v6EKKKK+DPpAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//0/6EKKKK+DPpAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//1P6EKKKK+DPpAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//1f6EKKKK+DPpAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//1v6EKKKK+DPpAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//2Q==" alt="GN"></div>
@@ -1969,6 +1993,13 @@ html, body {
       <div class="dash-title">Réglages</div>
     </div>
 
+    <!-- Aperçu espace cliente -->
+    <div class="settings-card">
+      <div class="settings-card-title">Aperçu côté cliente</div>
+      <div class="settings-card-sub">Visualisez l'application exactement comme vos clientes la voient. Lecture seule : la réservation est désactivée.</div>
+      <button class="settings-save-btn" id="btn-preview-cliente" style="margin-top:12px;">👁 Voir l'espace cliente</button>
+    </div>
+
     <!-- Section 1 — Infos du salon -->
     <div class="settings-card">
       <div class="settings-card-title">Infos du salon</div>
@@ -2399,6 +2430,34 @@ function enterMarion() {
   loadAllSettings();
 }
 
+// ── Aperçu espace cliente (depuis l'espace gérante, lecture seule) ──
+// Marion reste connectée en admin ; on affiche l'UI cliente telle quelle.
+// Toutes les actions d'écriture cliente sont neutralisées via window._previewMode.
+window.enterClientePreview = async function() {
+  window._previewMode = true;
+  document.getElementById("dashboard-screen").style.display = "none";
+  const banner = document.getElementById("preview-banner");
+  if (banner) banner.style.display = "flex";
+  await enterCliente();
+  const appEl = document.getElementById("app");
+  if (appEl) appEl.style.paddingTop = "40px"; // laisse la place au bandeau fixe
+  window.scrollTo(0, 0);
+};
+
+window.exitClientePreview = function() {
+  window._previewMode = false;
+  const banner = document.getElementById("preview-banner");
+  if (banner) banner.style.display = "none";
+  const appEl = document.getElementById("app");
+  if (appEl) { appEl.style.display = "none"; appEl.style.paddingTop = ""; }
+  // Couper les listeners cliente ouverts par l'aperçu ; garder ceux de la gérante.
+  if (unsubRdvs) { unsubRdvs(); unsubRdvs = null; }
+  if (typeof unsubSlots !== "undefined" && unsubSlots) { unsubSlots(); unsubSlots = null; }
+  if (inspiUnsubscribe) { inspiUnsubscribe(); inspiUnsubscribe = null; }
+  document.getElementById("dashboard-screen").style.display = "block";
+  window.scrollTo(0, 0);
+};
+
 // ── Dashboard nav tab switching ──
 function showDashTab(tab) {
   document.querySelectorAll(".dash-screen").forEach(s => s.classList.remove("active"));
@@ -2579,6 +2638,7 @@ NA_OPTIONS.forEach(n => { TARIFS[n.label] = n.prix + "€"; });
 
 window.confirmRdv = async function() {
   if (!currentUser) { showToast("Connectez-vous pour réserver."); return; }
+  if (window._previewMode) { showToast("👁 Aperçu : la réservation est désactivée."); return; }
   if (window._clienteRouge) { showToast("⚠ Réservation non autorisée. Contactez le salon."); return; }
   if (isDayBlocked(calY, calM, selDay)) { showToast("⚠ Cette journée n'est pas disponible."); return; }
   if (!selPrestas.length) { showToast("Veuillez choisir une prestation."); return; }
@@ -2649,6 +2709,26 @@ window.confirmRdv = async function() {
     } catch(e) {}
   }
 
+  // ── Garde anti-réservation d'un jour bloqué (fix #3) ──
+  // On revérifie la source de vérité serveur (collection "blocked") juste avant
+  // d'écrire, car le cache temps réel cliente peut être en retard : jour bloqué
+  // pendant que l'écran est ouvert, latence réseau, listener pas encore arrivé.
+  // C'est ce décalage qui laissait réserver un jour bloqué « de temps en temps ».
+  // Lecture seule + fail-safe : si la lecture échoue (réseau/permission), on
+  // retombe sur le cache local (comportement actuel) sans jamais bloquer une
+  // réservation légitime. Aucune écriture ici.
+  const dayKey = calY + "-" + calM + "-" + selDay;
+  try {
+    const blockedSnap = await getDoc(doc(db, "blocked", dayKey));
+    if (blockedSnap.exists()) {
+      blockedDaysCache[dayKey] = true;   // resynchronise l'affichage local
+      showToast("⚠ Cette journée n'est plus disponible.");
+      renderCal(); renderCr(); return;
+    }
+  } catch(e) {
+    console.warn("[RDV] Vérif jour bloqué indisponible, fallback cache local:", e.code || e.message);
+  }
+
   // Vérifier conflit créneau avec transaction Firestore (anti-doublon multi-clientes)
   const creneauId = calY + "-" + calM + "-" + selDay + "-" + heureToSlotId(selCr);
   const slotRef = doc(db, "slots", creneauId);
@@ -2700,6 +2780,7 @@ window.confirmRdv = async function() {
 
 // ── Annuler RDV ──────────────────────────────────────
 window.annulerRdv = async function(id) {
+  if (window._previewMode) { showToast("👁 Aperçu : action désactivée."); return; }
   try {
     await updateDoc(doc(db, "rdvs", id), { statut: "annule" });
     showToast("RDV annulé.");
@@ -5405,6 +5486,7 @@ async function toggleLike(postId, btn) {
 // ── Envoyer commentaire ──
 async function sendComment(postId) {
   if (!currentUser) { showToast("Connectez-vous pour commenter."); return; }
+  if (window._previewMode) { showToast("👁 Aperçu : action désactivée."); return; }
   const input = document.querySelector('[data-comment-input="' + postId + '"]');
   const texte = (input?.value || "").trim();
   if (!texte) return;
@@ -5946,10 +6028,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const btnRappels = document.getElementById("btn-rappels-j1");
   if (btnRappels) btnRappels.addEventListener("click", envoyerRappelsJMoins1);
 
+  // Afficher / masquer le mot de passe (œil) sur connexion, inscription, gérance
+  document.querySelectorAll(".pwd-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const input = document.getElementById(btn.dataset.pwdTarget);
+      if (!input) return;
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      btn.setAttribute("aria-label", show ? "Masquer le mot de passe" : "Afficher le mot de passe");
+      const eye = btn.querySelector(".icon-eye");
+      const eyeOff = btn.querySelector(".icon-eye-off");
+      if (eye) eye.style.display = show ? "none" : "";
+      if (eyeOff) eyeOff.style.display = show ? "" : "none";
+      input.focus();
+    });
+  });
+
   // RGPD — bandeau cookies
   initCookieBanner();
 
   // Réglages Marion
+  const btnPreviewCliente = document.getElementById("btn-preview-cliente");
+  if (btnPreviewCliente) btnPreviewCliente.addEventListener("click", () => window.enterClientePreview());
+  const btnExitPreview = document.getElementById("btn-exit-preview");
+  if (btnExitPreview) btnExitPreview.addEventListener("click", () => window.exitClientePreview());
   const btnSaveSalon = document.getElementById("btn-save-salon");
   if (btnSaveSalon) btnSaveSalon.addEventListener("click", saveSettingsSalon);
   const btnSaveHoraires = document.getElementById("btn-save-horaires");
