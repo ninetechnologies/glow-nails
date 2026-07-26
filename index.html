@@ -2199,6 +2199,13 @@ let currentUser  = null;   // Firebase User
 let userProfile  = null;   // doc Firestore users/{uid}
 let unsubRdvs    = null;   // listener RDV cliente
 let unsubDash    = null;   // listener dashboard Marion
+let unsubNotifs  = null;   // listener notifications cliente
+
+// Exécute une fonction de rendu sans laisser une exception vider l'UI
+// (les rendus font innerHTML="" avant de reconstruire : un throw = écran vide)
+function safeRender(fn, name) {
+  try { fn(); } catch (e) { console.error("[render:" + (name || fn.name || "?") + "]", e); }
+}
 let galerieUnsubscribe = null;  // listener galerie admin
 let inspiUnsubscribe   = null;  // listener inspirations cliente
 
@@ -2370,6 +2377,7 @@ window.backToLogin = async function() {
 
 function stopListeners() {
   if (unsubRdvs) { unsubRdvs(); unsubRdvs = null; }
+  if (unsubNotifs) { unsubNotifs(); unsubNotifs = null; }
   if (unsubDash) { unsubDash(); unsubDash = null; }
   if (unsubPosts) { unsubPosts(); unsubPosts = null; }
   if (typeof unsubSlots !== "undefined" && unsubSlots) { unsubSlots(); unsubSlots = null; }
@@ -2402,21 +2410,21 @@ async function enterCliente() {
     normalizeHoraires();
   }
 
-  refreshAccueil();
-  refreshEspace();
-  refreshLoyalty();
+  safeRender(refreshAccueil, "refreshAccueil");
+  safeRender(refreshEspace, "refreshEspace");
+  safeRender(refreshLoyalty, "refreshLoyalty");
   startRdvsListener();
   startSlotsListener();
   startPostsListener();
   initInspiCliente();
   selDay = new Date().getDate();
   selNAs = [];
-  renderCal();
-  renderCr();
-  renderPrestas();
-  renderNA();
-  updateSummary();
-  refreshCal();
+  safeRender(renderCal, "renderCal");
+  safeRender(renderCr, "renderCr");
+  safeRender(renderPrestas, "renderPrestas");
+  safeRender(renderNA, "renderNA");
+  safeRender(updateSummary, "updateSummary");
+  safeRender(refreshCal, "refreshCal");
   addRgpdFooterLinks();
 }
 
@@ -2500,32 +2508,36 @@ function applyUser() {
 //  FIRESTORE — RDV CLIENTE (onSnapshot temps réel)
 // ═══════════════════════════════════════════════════════
 let rdvsCache = []; // cache local pour éviter re-renders inutiles
+let rdvsLoaded = false; // premier snapshot reçu (évite d'afficher 0 tampon avant chargement)
 
 function startRdvsListener() {
   if (!currentUser) return;
+  rdvsLoaded = false;
   const q = query(
     collection(db, "rdvs"),
     where("uid", "==", currentUser.uid)
   );
+  if (unsubRdvs) { try { unsubRdvs(); } catch(_) {} unsubRdvs = null; }
   unsubRdvs = onSnapshot(q, (snap) => {
     rdvsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       .sort((a,b) => { const da=new Date(a.annee,a.mois,a.jour), db2=new Date(b.annee,b.mois,b.jour); return db2-da; });
-    refreshAccueil();
-    refreshEspace();
-    refreshLoyalty();
-    refreshCalDots();
+    rdvsLoaded = true;
+    safeRender(refreshAccueil, "refreshAccueil");
+    safeRender(refreshEspace, "refreshEspace");
+    safeRender(refreshLoyalty, "refreshLoyalty");
+    safeRender(refreshCalDots, "refreshCalDots");
+  }, (err) => {
+    console.error("[rdvs listener] erreur, reconnexion dans 3s:", err.code || err.message);
+    if (unsubRdvs) { try { unsubRdvs(); } catch(_) {} unsubRdvs = null; }
+    setTimeout(() => { if (currentUser) startRdvsListener(); }, 3000);
   });
   // Écouter les jours bloqués en temps réel côté cliente
-  onSnapshot(collection(db, "blocked"), (snap) => {
-    blockedDaysCache = {};
-    snap.docs.forEach(d => { blockedDaysCache[d.id] = true; });
-    renderCal();
-    if (typeof renderCr === "function") renderCr();
-  });
+  startBlockedListenerCliente();
 
   // Écouter les notifications (RDV refusé + alternatives)
   const nq = query(collection(db, "notifications"), where("uid", "==", currentUser.uid), where("lu", "==", false));
-  onSnapshot(nq, (snap) => {
+  if (unsubNotifs) { try { unsubNotifs(); } catch(_) {} unsubNotifs = null; }
+  unsubNotifs = onSnapshot(nq, (snap) => {
     snap.docs.forEach(async (d) => {
       const n = d.data();
       if (n.type === "rdv_refuse" || n.type === "rdv_annule" || n.type === "rdv_modifie") {
@@ -2537,6 +2549,26 @@ function startRdvsListener() {
         await updateDoc(doc(db, "notifications", d.id), { lu: true });
       }
     });
+  }, (err) => {
+    console.error("[notifications listener] erreur, reconnexion dans 3s:", err.code || err.message);
+    if (unsubNotifs) { try { unsubNotifs(); } catch(_) {} unsubNotifs = null; }
+    setTimeout(() => { if (currentUser) startRdvsListener(); }, 3000);
+  });
+}
+
+// Listener jours bloqués côté cliente — fonction dédiée pour permettre la reconnexion.
+// unsubBlocked est partagé avec le listener admin : une seule instance à la fois.
+function startBlockedListenerCliente() {
+  if (unsubBlocked) { try { unsubBlocked(); } catch(_) {} unsubBlocked = null; }
+  unsubBlocked = onSnapshot(collection(db, "blocked"), (snap) => {
+    blockedDaysCache = {};
+    snap.docs.forEach(d => { blockedDaysCache[d.id] = true; });
+    safeRender(renderCal, "renderCal");
+    if (typeof renderCr === "function") safeRender(renderCr, "renderCr");
+  }, (err) => {
+    console.error("[blocked listener] erreur, reconnexion dans 3s:", err.code || err.message);
+    if (unsubBlocked) { try { unsubBlocked(); } catch(_) {} unsubBlocked = null; }
+    setTimeout(() => { if (currentUser) startBlockedListenerCliente(); }, 3000);
   });
 }
 
@@ -2665,7 +2697,7 @@ window.confirmRdv = async function() {
 
   // Vérifier doublon sur son propre compte
   const dejaReserve = rdvsCache.find(r =>
-    r.statut !== "annule" && r.jour === selDay && r.mois === calM && r.annee === calY
+    r.statut !== "annule" && r.statut !== "refuse" && r.statut !== "desistement" && r.jour === selDay && r.mois === calM && r.annee === calY
   );
   if (dejaReserve) { showToast("⚠ Vous avez déjà un RDV ce jour."); return; }
 
@@ -2830,7 +2862,7 @@ function renderDashboard(rdvs, today) {
   const todayY = today.getFullYear(), todayM = today.getMonth(), todayD = today.getDate();
   const now = new Date();
 
-  const isRdvActif = r => r.statut !== "refuse" && r.statut !== "annule";
+  const isRdvActif = r => r.statut !== "refuse" && r.statut !== "annule" && r.statut !== "desistement";
 
   const rdvAuj = rdvs
     .filter(r => r.jour===todayD && r.mois===todayM && r.annee===todayY && isRdvActif(r))
@@ -3039,7 +3071,7 @@ function renderMarionCal() {
   // Jours ayant des RDV confirmés ou événements agenda ce mois
   const rdvDays = [...new Set(
     marionRdvsAll
-      .filter(r => r.statut !== "annule" && r.statut !== "refuse" && r.mois === mCalM && r.annee === mCalY)
+      .filter(r => r.statut !== "annule" && r.statut !== "refuse" && r.statut !== "desistement" && r.mois === mCalM && r.annee === mCalY)
       .map(r => r.jour)
   )];
   const agendaDays = [...new Set(
@@ -3118,7 +3150,7 @@ function renderMarionDayRdvs() {
 
   // RDV clientes
   const rdvJour = marionRdvsAll
-    .filter(r => r.jour === mSelDay && r.mois === mCalM && r.annee === mCalY && r.statut !== "annule" && r.statut !== "refuse")
+    .filter(r => r.jour === mSelDay && r.mois === mCalM && r.annee === mCalY && r.statut !== "annule" && r.statut !== "refuse" && r.statut !== "desistement")
     .sort((a, b) => a.heure.localeCompare(b.heure));
 
   // Événements agenda Marion
@@ -4021,7 +4053,7 @@ function refreshEspace(){
   list.innerHTML="<div style='padding:16px;font-size:13px;color:var(--text3);text-align:center;'>Aucun rendez-vous pour l'instant.</div>";
     return;
   }
-  list.innerHTML=rdvs.filter(r=>r.statut!=="annule"&&r.statut!=="refuse").map(r=>{
+  list.innerHTML=rdvs.filter(r=>r.statut!=="annule"&&r.statut!=="refuse"&&r.statut!=="desistement").map(r=>{
     const past      = new Date(r.annee,r.mois,r.jour) < now;
     const enAttente = r.statut === "en_attente";
     const confirme  = r.statut === "confirme";
@@ -4101,10 +4133,20 @@ function getVisitesTotal(){
 
 function buildLoyaltyCard(containerId){
   const el=document.getElementById(containerId); if(!el) return;
-  const tampons=getTampons(), total=getVisitesTotal();
+  // Ne pas rendre la carte avant le premier snapshot rdvs : évite le flash "0 tampon"
+  if(!rdvsLoaded){
+    el.innerHTML="<div style='padding:24px;text-align:center;font-size:12px;color:var(--text3);'>Chargement de votre carte…</div>";
+    return;
+  }
+  const rawTampons=getTampons(), total=getVisitesTotal();
+  // Cycle tout juste complété : afficher 5/5 + récompense, pas un "0/5" qui ressemble à une perte
+  const cycleComplet = rawTampons===0 && total>0;
+  const tampons = cycleComplet ? LOYALTY_MAX : rawTampons;
   const pct=Math.round((tampons/LOYALTY_MAX)*100);
-  const cycles=Math.floor(total/LOYALTY_MAX);
-  const rewardMsg=tampons===0&&total>0
+  const cyclesTotal=Math.floor(total/LOYALTY_MAX);
+  // Le cycle en attente d'utilisation ne compte pas comme "utilisé"
+  const cycles = cycleComplet ? cyclesTotal-1 : cyclesTotal;
+  const rewardMsg=cycleComplet
     ? "✦ Réduction −15% débloquée sur votre prochain RDV !"
     : `<strong>${LOYALTY_MAX} visites</strong> = −15% sur votre prochaine visite`;
   let stampsHtml="";

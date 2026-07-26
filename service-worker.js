@@ -1,4 +1,4 @@
-const CACHE_NAME = "glow-nails-v4";
+const CACHE_NAME = "glow-nails-v5";
 const ASSETS = [
   "./index.html",
   "./manifest.json",
@@ -36,8 +36,12 @@ self.addEventListener("fetch", e => {
   e.respondWith(
     fetch(e.request)
       .then(res => {
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+        // Ne jamais mettre en cache une réponse d'erreur (502/504 pendant un deploy)
+        // sinon elle est servie en fallback offline = écran blanc persistant
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+        }
         return res;
       })
       .catch(() => caches.match(e.request))
