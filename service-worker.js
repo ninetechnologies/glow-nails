@@ -1,4 +1,4 @@
-const CACHE_NAME = "glow-nails-v5";
+const CACHE_NAME = "glow-nails-v6";
 const ASSETS = [
   "./index.html",
   "./manifest.json",
@@ -37,8 +37,9 @@ self.addEventListener("fetch", e => {
     fetch(e.request)
       .then(res => {
         // Ne jamais mettre en cache une réponse d'erreur (502/504 pendant un deploy)
-        // sinon elle est servie en fallback offline = écran blanc persistant
-        if (res.ok) {
+        // sinon elle est servie en fallback offline = écran blanc persistant.
+        // status 200 strict : l'API Cache refuse les 206 Partial Content (streaming vidéo)
+        if (res.status === 200) {
           const clone = res.clone();
           caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
         }

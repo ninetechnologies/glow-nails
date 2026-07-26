@@ -1324,6 +1324,37 @@ html, body {
 </head>
 <body>
 
+<!-- SPLASH VIDEO ouverture (à chaque chargement, tap pour passer) -->
+<div id="splash-video" style="position:fixed;inset:0;z-index:20000;background:#E8E0D2;display:none;opacity:1;transition:opacity .5s ease;">
+  <video id="splash-video-el" muted playsinline preload="auto"
+    style="width:100%;height:100%;object-fit:cover;"
+    src="intro.mp4"></video>
+  <div style="position:absolute;bottom:max(24px,env(safe-area-inset-bottom));left:0;right:0;text-align:center;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.85);text-shadow:0 1px 4px rgba(0,0,0,.35);">Toucher pour passer</div>
+</div>
+<script>
+(function(){
+  var wrap = document.getElementById("splash-video");
+  var vid = document.getElementById("splash-video-el");
+  var done = false;
+  function close(){
+    if (done) return;
+    done = true;
+    wrap.style.opacity = "0";
+    setTimeout(function(){ wrap.remove(); }, 520);
+  }
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduced) { wrap.remove(); return; }
+  wrap.style.display = "block";
+  wrap.addEventListener("click", close);
+  vid.addEventListener("ended", close);
+  vid.addEventListener("error", close);
+  setTimeout(close, 8000); // sécurité : ne jamais bloquer l'accès à l'app
+  vid.muted = true;
+  var p = vid.play();
+  if (p && p.catch) p.catch(close); // autoplay refusé → accès direct
+})();
+</script>
+
 <!-- LOGIN -->
 <div id="login-screen">
   <div class="login-top">
